@@ -1,0 +1,97 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: Georgia, "Times New Roman", Times, serif;
+  background-color: white; //#9966ff;
+}
+
+header {
+    height: 10% !important;
+    color: #ff9900;
+}
+
+header h1 {
+    font-weight: bold;
+    font: 50px/40px "Arial Black", "Helvetica Black", Gadget, sans-serif;
+    text-shadow: 1px 1px 0 #e0e0ff;
+    margin: 0px;
+}
+
+#map_section {
+    height: 85%;
+    width: 100%;
+}
+
+#map_canvas {
+    height: 100%;
+    width: 100%;
+}
+
+footer {
+    height: 5%;
+    font-size: 80%;
+}
+
+#message_pad {
+  height: 100%;
+  width: 50%;
+  border-right: solid gray 1px;
+}
+
+footer div, progress {
+}
+
+fieldset ul {
+    list-style: none;
+}
+
+fieldset ul li label {
+    font-weight: bold;
+    padding: 0px 10px 0px 0px;
+    min-width: 300px !important;
+}
+
+.dialog {
+    position: relative;
+    width: 500px;
+    margin: 10% auto 0px auto   ;
+    padding: 25px;
+    background: #9966ff;
+    -webkit-border-radius: 25px;
+    -moz-border-radius: 25px;
+    border-radius: 25px;
+    box-shadow: 0 0 25px #d0d0d0;
+    opacity: 0.8;
+}
+
+.dialog fieldset {
+    border: none;
+    -webkit-border-radius: 15px;
+    -moz-border-radius: 15px;
+    border-radius: 15px;
+    background-color: #ff7700;
+    opacity: 1.0 !important;
+}
+
+.dialog fieldset legend {
+    background-color: #ff9900;
+    -webkit-border-radius: 5px;
+    -moz-border-radius: 5px;
+//    border-radius: 5px;
+    border: solid 1px #6633cc;
+    padding: 10px 10px 10px 10px;
+    opacity: 1.0 !important;
+}
+
+#overlay {
+    display: block;
+    position: fixed;
+    z-index: 9999;
+    left: 0;
+    top: 0;
+    width: 100%;
+    min-height: 100% !important;
+    height: 100% !important;
+    max-height: 100% !important;
+}

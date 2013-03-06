@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Migra ancestry mapping</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta charset="UTF-8">
+    <link rel="stylesheet" media="screen" type="text/css" href="migra.css" />
+    <script type="text/javascript" src="jquery-1.9.1.min.js"></script>
+    <script type="text/javascript" src="http://maps.googleapis.com/maps/api/js?sensor=false"></script>
+    <script type="text/javascript" src="http://google-maps-utility-library-v3.googlecode.com/svn/trunk/markerclusterer/src/markerclusterer.js"></script>
+    <script type="text/javascript" src="oms.min.js"></script>
+    <script type="text/javascript" src="migra.js"></script>
+  </head>
+  <body>
+        <header id="header"><h1>Migra ancestry mapping</h1>
+        <form action="javascript:clearMap();"><input type="button" value="Reset" /></form>
+        </header>
+        <section id="map_section"><div id="map_canvas"></div></section>
+        <section id="experimental" style="display: none;">
+        <form action="javascript:showMigrations();"><input type="submit" value="Show Migrations" /></form>
+        </section>
+        <footer id="footer" class="footer" style="display: table; width: 100%">
+            <div id="statusBar" style="display: table-row; width: 100%">
+                <div id="message_pad" style="display: table-cell; width: 50%; border">Ready.</div>
+                <progress id="progressBar" value="0" max="100" style="display: table-cell; width: 100%">&nbsp;</progress>
+                <div id="percentageCalc" style="display: table-cell; width: 5%;">&nbsp;</div>  
+            </div>
+        </footer>
+
+        <div id="overlay">
+            <div id="upload_form_wrapper" class="dialog" style="display: none;" >
+                 <form id="upload_form" action="/cgi-bin/migra/migra.py" >
+                     <input type="hidden" name="a" value="p" />
+                     <fieldset>
+                         <legend>Upload your genealogy data</legend>
+                         <ul class="formfields">
+                         <li>
+                         <label for="gedcom" id="file_label">GEDCOM</label>
+                         <input type="file" required placeholder="A Gedcom file" name="gedcom" id="gedcom" />
+                         </li>
+                         <li>
+                         <label for="q" id="q_label" >Search</label>
+                         <input name="q" id="query_string" placeholder="Search term" />
+                         </li>
+                         </ul>
+                         <input type="submit"></input>
+                     </fieldset>
+                     <p style="font-size: 75%">
+                     GEDCOM is the industry-standard genealogy file structure. Your online genealogy site or
+                     desktop program should be capable of generating GEDCOM files. These files can get quite big,
+                     and larger files increase processing time.
+                     </p>
+                 </form>
+            </div>
+            <div id="walk_form_wrapper" class="dialog" style="display: none;">
+                <form id="walk_form" action="/cgi-bin/migra/migra.py" >
+                    <input type="hidden" name="a" value="w" />
+                    <input type="hidden" name="sid" id="sid"/>
+                    <fieldset>
+                        <legend>Whose ancestors are we mapping?</legend>
+                        <ul class="formfields">
+                        <li>
+                        <label for="i" id="i_label">Focal individual</label>
+                        <select name="i" id="i_select">
+                        </select>
+                        </li>
+                        <li>
+                        <label for="d" id="d_label">Depth</label>
+                        <select name="d" id="depth">
+                            <option value="1">Parents</option>
+                            <option value="2">Grandparents</option>
+                            <option value="3">Great grandparents</option>
+                            <option value="4">Great-great grandparents</option>
+                            <option value="5">3rd great grandparents</option>
+                            <option value="6">4th great grandparents</option>
+                            <option value="7">5th great grandparents</option>
+                            <option value="8">6th great grandparents</option>
+                            <option value="9">7th great grandparents</option>
+                            <option value="10">8th great grandparents</option>
+                            <option value="11">9th great grandparents</option>
+                            <option value="12">10th great grandparents</option>
+                            <option value="13">11th great grandparents</option>
+                            <option value="14">12th great grandparents</option>
+                        </select>
+                        </li>
+                        </ul>
+                        <input type="submit"></input>
+                    </fieldset>
+                </form>
+            </div>
+        </div>
+    </body>
+</html>
