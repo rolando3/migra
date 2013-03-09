@@ -49,6 +49,67 @@ function Address ( placename, latlng )
     this.addPerson = function(person) {
         this.people.push ( person );
     }
+    
+    this.cache = function() {
+        action = "/cgi-bin/migra/migra.py"
+        //Given an address, send an AJAX request to cache 
+        //We don't even care if it works.
+        $.ajax({
+            type: 'post',
+            data: { a: 'c', data: JSON.stringify({ name: this.placename, lat: this.loc.lat(), lng: this.loc.lng() } ) },
+            url: action,
+            success: function ( results ) {
+                //
+            },
+            error: function( xhr, httpStatus, msg ) { 
+                //
+            }
+        });
+    }
+    
+    this.draw = function () {
+        for (var i = 0; i < this.people.length; i++) {
+            this.people[i].loc = this.loc;
+            this.people[i].draw();
+        }
+    } 
+    
+    this.find = function ( ) {
+    }
+}
+
+function findAddress(address) 
+{
+    if ( address.loc != null )
+    {
+        //We're already done.
+        address.draw();
+        locationStatus.cache ++;
+        progressFunctionLocations();
+    }
+    else
+    {
+     	geocoder.geocode( { 'address': address.placename }, function ( results, status ) {
+       		if (status == google.maps.GeocoderStatus.OK ) 
+       		{
+    		    showProgress ( "Geocoded {0}.".format(address.placename) );
+                address.loc = results[0].geometry.location;
+                address.draw();
+                address.cache();
+                locationStatus.geocoded ++;
+       		}
+       		else if (status == google.maps.GeocoderStatus.OVER_QUERY_LIMIT) 
+       		{
+                setTimeout(function() { findAddress(address); }, Math.random() * 10000 );
+    		}
+    		else
+    		{
+    		    showProgress ( "Error finding {0}: {1}.".format ( address.placename , status ) );
+    		    locationStatus.error ++;
+    		}
+    		progressFunctionLocations();
+     	} );
+    }
 }
 
 function AncestryLink ( parentID, childID )
@@ -59,6 +120,44 @@ function AncestryLink ( parentID, childID )
     
     this.child = data.people[childID];
     data.people[childID].addParentLink(this);
+    
+    this.polyLine = null;
+    
+    this.draw = function ( ) {
+       	//Go through the legs
+       	//Look up the coordinates
+    
+        var maxWeight = options["depth"];
+    
+    	if ( this.parent.loc === undefined || this.child.loc === undefined ) return;
+    
+        strokecolor = getStrokeColor ( this );
+    
+    	var opacity = 0.5;
+    	var weight = Math.abs ( maxWeight - Math.min ( this.parent.generation, maxWeight - 1 ) );    	
+    	if ( weight < 1 || weight === undefined || weight == NaN ) weight = 1;
+    	
+        var plOptions = {
+          path: [ this.parent.loc, this.child.loc ],
+          strokeWeight: weight,
+          geodesic: true,
+          strokeOpacity: opacity,
+          strokeColor: strokecolor,
+          map: map,
+          link: this
+        };
+    
+    	this.polyLine = new google.maps.Polyline(plOptions);
+    	overlays.polylines.push ( this.polyLine );
+    
+        //I wish this addListener were for an iNfoWindow. Some day.
+        google.maps.event.addListener(this.polyLine, 'click', function()
+            { 
+                this.link.parent.showPathToFocus ( );
+            });
+    }
+
+
 }
 
 function Person ( jsonPerson ) 
@@ -103,31 +202,133 @@ function Person ( jsonPerson )
         this.childLinks.push ( link );
     }
 
+    this.showPathToFocus = function ( ) {
+        var curLink;
+        var path = [];
+        var tempMarkers = [];
+        var s = new OverlappingMarkerSpiderfier(map);
+        var m;
+
+        //we are going to hide all links and just show the path from this individual to the focus individual.
+        showAllOverlays(false);
+
+        curLink = this.childLinks[0];
+        m = curLink.parent.addMarker();
+        s.addMarker(m);
+        tempMarkers.push ( m );
+        path.push ( curLink.parent.loc );
+        while ( curLink && curLink.child ) {
+            m = curLink.child.addMarker();
+            tempMarkers.push ( m );
+            s.addMarker(m);
+            if ( curLink.child.loc ) path.push (curLink.child.loc);
+            curLink = curLink.child.childLinks[0]; //There should only be one.
+        }
+        
+        var plOptions = {
+            path: path,
+            geodesic: true,
+            strokeColor: "orange",
+            weight: 4,
+            map: map,
+            points: tempMarkers,
+            spider: s
+        };
+        
+        newLine = new google.maps.Polyline(plOptions)
+        google.maps.event.addListener(newLine, 'click', function() { 
+            this.setMap(null);
+            s.setMap(null);
+            for ( j = 0; j < tempMarkers.length; j ++ )
+            {
+                tempMarkers[j].setMap(null);
+            }
+            showAllOverlays(true);
+        });
+    }
+    
+
+    this.addMarker = function ( ) 
+    {
+        
+        pinColor = this.sex == "F" ? "FF8888" : "8888CC";
+    	var markerCharacter = "?";
+    	switch ( this.generation ) 
+    	{
+    	    case 0:
+    	        markerCharacter = "%E2%80%A2";
+    	        break;
+    	    case 1:
+    	        markerCharacter = ( this.sex == "F" ? "M" : "F" );
+    	        break;
+    	    case 2:
+    	        markerCharacter = "G";
+    	        break;
+    	    default:
+    	        markerCharacter = this.generation - 2;
+    	}
+    	
+    	//console.log ( "Marker location: " + this.loc.lat() + ", " + this.loc.lng() );
+    	
+    	var markerOpts = {
+    		position: this.loc, 
+    		map: map, 
+    		icon: new google.maps.MarkerImage("http://chart.apis.google.com/chart?chst=d_map_pin_letter&chld=" + markerCharacter + "|" + pinColor),
+    		title: "{0} ({1}; {2}; {3})".format( this.name , getRelationshipDesc(this) , this.placename , this.date, this.sexratio ),
+    		person: this
+    	};
+    	
+    	return new google.maps.Marker ( markerOpts );
+    
+    }
+
+    this.draw = function () {
+        m = this.addMarker ();
+        this.marker = m;
+        overlays.markers.push ( m );
+    	clusterer.addMarkers ( [ m ] );
+    	spiderifier.addMarker ( m );
+
+        //now we see if we have locations on both ends of the given link.
+        for (var j = 0; j < this.childLinks.length; j++) {
+            this.childLinks[j].draw();
+        }
+        for (var j = 0; j < this.parentLinks.length; j++) {
+            this.parentLinks[j].draw();
+        }
+        
+        google.maps.event.addListener(m, 'click', function()
+            { 
+                m.person.showPathToFocus ( );
+            });
+
+    }
+
 }
 
 //reset the map.
 function clearMap() 
 {
-  for (var i = 0; i < overlays.markers.length; i++ ) 
-  {
-      overlays.markers[i].setMap(null);
-  }
-  
-  for (var i = 0; i < overlays.polylines.length; i++ ) 
-  {
-      overlays.polylines[i].setMap(null);
-  }
-  
-  clusterer.clearMarkers();
-  
-  data.people = [];
-  data.addresses = [];
-  
-  locationStatus.total = 0;
-  locationStatus.geocoded = 0;
-  locationStatus.cache = 0;
-  locationStatus.error = 0;
+    for (var i = 0; i < overlays.markers.length; i++ ) 
+    {
+        overlays.markers[i].setMap(null);
+    }
     
+    for (var i = 0; i < overlays.polylines.length; i++ ) 
+    {
+        overlays.polylines[i].setMap(null);
+    }
+    
+    clusterer.clearMarkers();
+    
+    data.people = [];
+    data.addresses = [];
+    
+    locationStatus.total = 0;
+    locationStatus.geocoded = 0;
+    locationStatus.cache = 0;
+    locationStatus.error = 0;
+      
 }
 
 function initialize() 
@@ -151,12 +352,6 @@ function initialize()
 
     //show our upload form.
     $('#upload_form_wrapper').show();
-}
-
-function calculatePathSexCoefficient ( person )
-{
-    //Ideally the server would send us the path--boy that would make this a lot easier!--but for now we can do it here.
-    //Given a person, 
 }
 
 function addEventListeners() 
@@ -216,24 +411,6 @@ function processForm(form, e, successfunction )
     });
 }
 
-function cacheLocation(a) {
-    action = "/cgi-bin/migra/migra.py"
-    //Given an address, send an AJAX request to cache 
-    //We don't even care if it works.
-    $.ajax({
-        type: 'post',
-        data: { a: 'c', data: JSON.stringify({ name: a.placename, lat: a.loc.lat(), lng: a.loc.lng() } ) },
-        url: action,
-        success: function ( results ) {
-            //
-        },
-        error: function( xhr, httpStatus, msg ) { 
-            //
-        }
-    });
-    
-}
-
 function buildPeopleList(httpData)
 {
     //Given the Json returned from our "p" action, build the list of people around whom we can build our map.
@@ -288,7 +465,7 @@ function drawMap ( httpData )
     
     for ( i = 0; i < addressNames.length; i++)
     {
-        getLatLng(data.addresses[addressNames[i]]);
+        findAddress(data.addresses[addressNames[i]]);
     }
     
     $('#walk_form_wrapper').hide();
@@ -316,54 +493,6 @@ function updateProgressBar(i,total,computable) {
         progressBar.max = total; 
         progressBar.value = i; 
         percentageDiv.innerHTML = Math.round(i / total * 100) + "%"; 
-    }
-}
-
-function handleGeocodeResults ( address ) {
-    for (var i = 0; i < address.people.length; i++) {
-        person = address.people[i];
-        person.loc = address.loc;
-        addMarker ( person,0 );
-        //now we see if we have locations on both ends of the given link.
-        for (var j = 0; j < person.childLinks.length; j++) {
-            drawAncestryPath ( person.childLinks[j] );
-        }
-        for (var j = 0; j < person.parentLinks.length; j++) {
-            drawAncestryPath ( person.parentLinks[j] );
-        }
-    }
-}
-
-function getLatLng ( address ) {
-    if ( address.loc != null )
-    {
-        //We're already done.
-        handleGeocodeResults(address);
-        locationStatus.cache ++;
-        progressFunctionLocations();
-    }
-    else
-    {
-     	geocoder.geocode( { 'address': address.placename }, function ( results, status ) {
-       		if (status == google.maps.GeocoderStatus.OK ) 
-       		{
-    		    showProgress ( "Geocoded {0}.".format(address.placename) );
-                address.loc = results[0].geometry.location;
-                handleGeocodeResults ( address );
-                cacheLocation ( address );
-                locationStatus.geocoded ++;
-       		}
-       		else if (status == google.maps.GeocoderStatus.OVER_QUERY_LIMIT) 
-       		{
-                setTimeout(function() { getLatLng(address); }, Math.random() * 10000 );
-    		}
-    		else
-    		{
-    		    showProgress ( "Error finding {0}: {1}.".format ( address.placename , status ) );
-    		    locationStatus.error ++;
-    		}
-    		progressFunctionLocations();
-     	} );
     }
 }
 
@@ -456,52 +585,10 @@ function getStrokeColor ( link ) {
     
     strokeColor = "#{0}{1}{2}".format ( redfactor,greenfactor,bluefactor );
     
-    console.log ( "{0}: {1}".format(link.parent.name,strokeColor));
+//    console.log ( "{0}: {1}".format(link.parent.name,strokeColor));
     
     return strokeColor
     
-}
-
-
-function drawAncestryPath ( link ) 
-{
-   	if ( link === undefined ) return; //no link available -- this is really not great.
-  
-   	//Go through the legs
-   	//Look up the coordinates
-
-    var maxWeight = options["depth"];
-
-	if ( link.parent.loc === undefined || link.child.loc === undefined ) return;
-
-    strokecolor = getStrokeColor ( link );
-
-	var opacity = 0.5;
-	var weight = Math.abs ( maxWeight - Math.min ( link.parent.generation, maxWeight - 1 ) );
-	
-	if ( weight < 1 || weight === undefined || weight == NaN ) 
-	{
-		weight = 1;
-	}	
-	
-    var plOptions = {
-      path: [ link.parent.loc, link.child.loc ],
-      strokeWeight: weight,
-      geodesic: true,
-      strokeOpacity: opacity,
-      strokeColor: strokecolor,
-      map: map,
-      link: link
-    };
-
-	link.polyLine = new google.maps.Polyline(plOptions);
-	overlays.polylines.push ( link.polyLine );
-
-    //I wish this addListener were for an iNfoWindow. Some day.
-    google.maps.event.addListener(link.polyLine, 'click', function()
-        { 
-            window.alert ( this.link.parent.marker.title + " -> " + this.link.child.marker.title ); 
-        });
 }
 
 function getRelationshipDesc ( person ) 
@@ -520,47 +607,6 @@ function getRelationshipDesc ( person )
         rel = "" + ( g+(s[(v-20)%10]||s[v]||s[0]) ) + " " + rel;
     }
 	return rel;
-}
-
-function addMarker ( person ) 
-{
-	
-	var pinColor = "AAAAAA";
-	if ( person.sex == "F" ) 
-	{
-		pinColor = "FF8888";
-	}
-	else if ( person.sex == "M" ) 
-	{
-		pinColor = "8888CC";
-	}
-	
-	var markerCharacter = "?";
-	switch ( person.generation ) 
-	{
-	    case 0:
-	        markerCharacter = "%E2%80%A2";
-	        break;
-	    case 1:
-	        markerCharacter = ( person.sex == "F" ? "M" : "F" );
-	        break;
-	    case 2:
-	        markerCharacter = "G";
-	        break;
-	    default:
-	        markerCharacter = person.generation - 2;
-	}
-	
-	person.marker = new google.maps.Marker ( {
-		position: person.loc, 
-		map: map, 
-		icon: new google.maps.MarkerImage("http://chart.apis.google.com/chart?chst=d_map_pin_letter&chld=" + markerCharacter + "|" + pinColor),
-		title: "{0} ({1}; {2}; {3})".format( person.name , getRelationshipDesc(person) , person.placename , person.date, person.sexratio )
-	} );
-
-    overlays.markers.push ( person.marker );
-	clusterer.addMarkers ( [ person.marker ] );
-	spiderifier.addMarker ( person.marker );
 }
 
 function xinspect(o,i){

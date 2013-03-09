@@ -42,11 +42,13 @@ footer {
 footer div, progress {
 }
 
-fieldset ul {
+/*
+fieldset ul  {
     list-style: none;
 }
+*/
 
-fieldset ul li label {
+fieldset label {
     font-weight: bold;
     padding: 0px 10px 0px 0px;
     min-width: 300px !important;

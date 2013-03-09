@@ -33,22 +33,23 @@
                      <input type="hidden" name="a" value="p" />
                      <fieldset>
                          <legend>Upload your genealogy data</legend>
-                         <ul class="formfields">
-                         <li>
-                         <label for="gedcom" id="file_label">GEDCOM</label>
+                         <dl class="formfields">
+                         <dt><label for="gedcom" id="file_label">GEDCOM</label></dt>
+                         <dd>
                          <input type="file" required placeholder="A Gedcom file" name="gedcom" id="gedcom" />
-                         </li>
-                         <li>
-                         <label for="q" id="q_label" >Search</label>
-                         <input name="q" id="query_string" placeholder="Search term" />
-                         </li>
-                         </ul>
+                         </dd>
+                         <dt><label for="q" id="q_label" >Search</label></dt>
+                         <dd>
+				<input name="q" id="query_string" placeholder="Search term" />
+                         </dd>
+                         </dl>
                          <input type="submit"></input>
                      </fieldset>
                      <p style="font-size: 75%">
-                     GEDCOM is the industry-standard genealogy file structure. Your online genealogy site or
-                     desktop program should be capable of generating GEDCOM files. These files can get quite big,
-                     and larger files increase processing time.
+                     GEDCOM is the standard genealogy file structure. 
+                     Your online genealogy site or desktop program should be 
+                     capable of generating GEDCOM files. These files can get 
+                     quite big, and larger files increase processing time.
                      </p>
                  </form>
             </div>
@@ -58,14 +59,15 @@
                     <input type="hidden" name="sid" id="sid"/>
                     <fieldset>
                         <legend>Whose ancestors are we mapping?</legend>
-                        <ul class="formfields">
-                        <li>
-                        <label for="i" id="i_label">Focal individual</label>
+                        <dl class="formfields">
+                        <dt>
+                        <label for="i" id="i_label">Focal individual</label></dt>
+			<dd>
                         <select name="i" id="i_select">
                         </select>
-                        </li>
-                        <li>
-                        <label for="d" id="d_label">Depth</label>
+                        </dd>
+                        <dt><label for="d" id="d_label">Depth</label></dt>
+			<dd>
                         <select name="d" id="depth">
                             <option value="1">Parents</option>
                             <option value="2">Grandparents</option>
@@ -82,10 +84,16 @@
                             <option value="13">11th great grandparents</option>
                             <option value="14">12th great grandparents</option>
                         </select>
-                        </li>
-                        </ul>
+                        </dd>
+                        </dl>
                         <input type="submit"></input>
                     </fieldset>
+                    <p style="font-size: 75%">
+                    The <q>focal individual</q> is the person whose ancestors you want to see. 
+                    Each level of ancestry can double the amount of processing time,
+                    though this effect is mitigated when Migra has already stored 
+                    locations in the GEDCOM.
+                    </p>
                 </form>
             </div>
         </div>
