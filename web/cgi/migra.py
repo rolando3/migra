@@ -1,17 +1,20 @@
-#!/opt/local/bin/python
-
-#this is python 2.7. Frankly I don't 
-
 import sys
 import json
-import cgi
-import traceback
 import psycopg2
-import decimal
-import copy
-#import cgitb; cgitb.enable()
+
 from gedcom import *
 
+__all__ = [
+    "Migra",
+    "MigraJSONEncoder" ]
+#    "MigraDataCache",
+#    "MigraWalker", 
+#    "MigraLocation", 
+#    "MigraPerson", 
+#    "MigraHelper",
+#    "MigraGeocoder",
+#    "MigraError"]
+    
 class MigraDataCache:
     def __init__(self):
         self.__people = []
@@ -130,8 +133,19 @@ class MigraPerson:
         return self.__path 
         
 class MigraLocation:
-    def __init__(self):
-        return
+    def __init__(self,name,lat,lng):
+        self.__name = name
+        self.__lat = lat
+        self.__lng = lng
+        
+    def name(self):
+        return self.__name;
+        
+    def lat(self):
+        return self.__lat;
+    
+    def lng(self):
+        return self.__lng;
 
 class MigraHelper:
     def __init__(self):
@@ -180,7 +194,6 @@ class MigraHelper:
 #        sys.stderr.write ( "WARNING: No locations found for %s (%s)\n" % ( unicode(" ".join(i.name())).encode("utf-8"), unicode#(i.pointer()).encode("utf-8") ) )
     @classmethod
     def buildListOfIndividuals(cls,g,q):
-        fs = cgi.FieldStorage()
         people = []
     
         if not q:
@@ -204,6 +217,7 @@ class MigraError(Exception):
         return repr(self.value)    
 
 class MigraJSONEncoder(json.JSONEncoder):
+    import decimal
     def default(self, o):
         if isinstance(o, decimal.Decimal):
             return float(o)
@@ -217,6 +231,7 @@ class MigraGeocoder:
         try:
             self.__con = psycopg2.connect(database='migra', user='postgres', password='shomia')
         except:
+            import traceback
             sys.stderr.write ( "Cannot connect to database." + ''.join(traceback.format_exception( *sys.exc_info())[-2:]).strip().replace('\n',': ') )
                     
     def geocode ( self, placename ):
@@ -232,6 +247,7 @@ class MigraGeocoder:
             else:
                 return  { 'lat': result[0], 'lng': result[1] }
         except:
+            import traceback
             sys.stderr.write ( "Error finding cached geo location for %s.\n" % unicode(placename).encode("utf-8") + ''.join(traceback.format_exception( *sys.exc_info())[-2:]).strip().replace('\n',': ') )
             
         return None
@@ -241,68 +257,36 @@ class MigraGeocoder:
         sql = "INSERT INTO geocode ( placename, lat, lng ) VALUES ( %s, %s, %s );"
         try:
             cur = self.__con.cursor()
-            cur.execute(sql,[ location["name"], location["lat"], location["lng"] ])
+            cur.execute(sql,[ location.name(), location.lat(), location.lng() ])
             self.__con.commit()
-            sys.stderr.write ( "Cached <%s>." % unicode(location["name"]).encode("utf-8") )
+            sys.stderr.write ( "Cached <%s>." % unicode(location.name()).encode("utf-8") )
         except:
-            sys.stderr.write (  "Error caching location ( %s, lat: %s, lng: %s)\n" % ( unicode(location["name"]).encode("utf-8"), location["lat"], location["lng"] ) + ''.join(traceback.format_exception( *sys.exc_info())[-2:]).strip().replace('\n',': ') )
-            return json.dumps({'status': {'message': 'FAIL', 'code': -1} } )
+            import traceback
+            sys.stderr.write (  "Error caching location ( %s, lat: %s, lng: %s)\n" % ( unicode(location.name()).encode("utf-8"), location.lat(), location.lng() ) + ''.join(traceback.format_exception( *sys.exc_info())[-2:]).strip().replace('\n',': ') )
+            return {'status': {'message': 'FAIL', 'code': -1} }
             
-        return json.dumps({'status': { 'message': 'OK', 'code': 0 } })
+        return {'status': { 'message': 'OK', 'code': 0 } }
 
-def header ():
-    return "Content-type: application/json\n\n"
-
-def gedcom_fromcgi ( fs ):
-    sid = fs.getvalue("sid")
-    if sid == None:
-        import sha, time
-        sid = sha.new(str(time.time())).hexdigest()
-
-    localfilename = "/Users/rolando/src/migra/data/%s.ged" % sid
-
-    if  fs.has_key("gedcom"):
-        fd = fs["gedcom"]
-        open(localfilename, 'wb').write(fd.file.read())
-
-    return ( sid, Gedcom.fromfilename(localfilename) )
-
-def main ():
-    """ what gets called when this web page is hit """
-
-    fs = cgi.FieldStorage()
-    action = fs.getvalue("a")
-
-    if action == "" or action == None:
-        action = "p"    
-
-    if action == "p":
-        #if action is p then we're reading the file and returning a list of individuals
-	( sid, g ) = gedcom_fromcgi(fs)
-        if g:
-            p = MigraHelper.buildListOfIndividuals(g,fs.getvalue("q"))
-            print header()
-            print json.dumps ( { 'sid': sid, 'people': p, 'parameters': { 'query': fs.getvalue("q") } }, indent=4 )
+class Migra:
+    def processGedcom ( self, file, query ):
+        #the calling function will have gotten the file from the web server and done something with it.
+        #based upon its framework it probably will have saved the file, but who knows? what we need to do:
+        #turn the file into a Gedcom object and then return a reference to it and a reference to the
+        #list of individuals that match the passed query. this way the frame
+        
+        #file can be a file name or a file object
+        if isinstance(file, basestring):
+            g = Gedcom.fromfilename(file)
         else:
-            sys.stderr.write("Gedcom build failed") 
+            g = Gedcom(file)
 
-    elif action == "w":
-        #if action is w then we're walking the tree
-        ( sid, g )  = gedcom_fromcgi(fs)
+        p = MigraHelper.buildListOfIndividuals(g,query)
         
-        walker = MigraWalker(g,fs.getvalue("i"),fs.getvalue("d"))
+        return (g, p)
 
-        print header()
-        result = json.dumps ( { 'sid': sid, 'people': walker.people(), 'links': walker.links(), 'parameters': { 'id': fs.getvalue("i"), 'depth': fs.getvalue("d") } }, indent=4, cls=MigraJSONEncoder )
-        sys.stderr.write ( result )
-        print result
+    def walk ( self, g, i, d ):
+        walker = MigraWalker(g,i,d)
+        return { 'sid': 0, 'people': walker.people(), 'links': walker.links(), 'parameters': { 'id': i, 'depth': d } }
         
-    elif action == "c":
-        #caching a latlng
-        #client-side geocoding has been done. we are now going to cache 
-        gc = MigraGeocoder()
-        print header()
-        print gc.cache ( json.loads(fs.getvalue("data")) )
-        
-
-main()
+    def cache ( self, parms ):
+        print MigraGeocoder().cache ( MigraLocation(parms["name"],parms["lat"],parms["lng"]) )

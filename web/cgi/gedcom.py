@@ -43,9 +43,11 @@ class Gedcom(object):
 
     """
 
-    def __init__(self,fd):
+    def __init__(self,fd,options=None):
         """ Initialize a Gedcom parser. You must supply a Gedcom file.
         """
+
+        self.__tag_whitelist = [ 'HEAD', 'PLAC', 'INDI', 'FAMS', 'FAMC', 'DATE', 'BIRT', 'BAPM', 'MARR', 'DEAT', 'BURI', 'GIVN', 'SURN', 'SEX', 'HUSB', 'WIFE', 'CHIL' ]
         self.__element_list = []
         self.__element_dict = {}
         self.__element_top = Element(-1,"","TOP","",self.__element_dict)
@@ -54,6 +56,7 @@ class Gedcom(object):
         self.__individuals = 0
         self.__parse(fd)
         self.__fd = fd
+
 
     @classmethod
     def fromfilename(cls, name):
@@ -78,11 +81,33 @@ class Gedcom(object):
 
     # Private methods
 
+    def __strip_bom(self,l):
+        try:
+            bom_info = (
+                ('\xEF\xBB\xBF',     3, 'UTF-8'),
+                ('\xFE\xFF',         2, 'UTF-16BE'),
+                ('\xFF\xFE',         2, 'UTF-16LE'),
+                ('\xFF\xFE\x00\x00', 4, 'UTF-32LE'),
+                ('\x00\x00\xFE\xFF', 4, 'UTF-32BE'),
+                )
+                
+            for sig, siglen, enc in bom_info:
+                if l.startswith(sig):
+                    import sys
+                    sys.stderr.write ( "ENCODING: %s\n" % enc )
+                    sys.stderr.write ( "LINE <%s>\n" % l[siglen:] )
+                    return l[siglen:]
+        finally:
+            return l
+
     def __parse(self,f):
         # open file
         # go through the lines
         number = 1
         for line in f.readlines():
+            if number == 1:
+                line = self.__strip_bom(line)
+
             self.__parse_line(number,line)
             number += 1
         self.__count()
@@ -90,6 +115,7 @@ class Gedcom(object):
     def __parse_line(self,number,line):
         # each line should have: Level SP (Pointer SP)? Tag (SP Value)? (SP)? NL
         # parse the line
+        import sys
         parts = string.split(line)
         place = 0
         l = self.__level(number,parts,place)
@@ -185,7 +211,6 @@ class Gedcom(object):
         for e in self.__element_list:
             if e.individual():
                 self.__individuals += 1
-
 
     def __All__(self):
         for e in self.element_list:

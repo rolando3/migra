@@ -417,7 +417,7 @@ function buildPeopleList(httpData)
     var value = "";
     var i = 0;
     options = httpData.parameters;
-    $('#sid').val(httpData.sid);
+    //$('#sid').val(httpData.sid);
     if ( httpData.people.length > 0 )
     {
         //We have found at least one match.
