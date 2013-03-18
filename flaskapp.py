@@ -9,7 +9,7 @@ import os
 
 app = Flask(__name__)
 app.config['SESSION_SECRETKEY'] = os.environ.get('MIGRA_SESSIONKEY','shlabittyboopityboo')
-app.config['UPLOAD_FOLDER'] = os.environ('MIGRA_UPLOADFOLDER','/Users/rolando/Downloads/gedtemp')
+app.config['UPLOAD_FOLDER'] = os.environ.get('MIGRA_UPLOADFOLDER','/Users/rolando/Downloads/gedtemp')
 
 migra = Migra()
 

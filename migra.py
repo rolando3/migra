@@ -205,7 +205,7 @@ class MigraGeocoder:
         try:
             import os
             self.__con = psycopg2.connect(
-                database=os.environ.get('MIGRADB_DATABASE','migra')
+                database=os.environ.get('MIGRADB_DATABASE','migra'),
                 user=os.environ.get('MIGRADB_USER','postgres'),
                 password=os.environ.get('MIGRADB_PASSWORD',''))
         except:
