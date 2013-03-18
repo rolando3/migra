@@ -1,28 +1,26 @@
 #!/opt/local/bin/python
 #flask implementation of my migra web app
 
-from migra import Migra, MigraJSONEncoder
+from migra import Migra, MigraPersonEncoder, MigraGeocoder
 from flask import Flask, make_response, request, render_template, url_for, session
-#from flaskext.uploads import ( UploadSet, configure_uploads )
 import json
 import sys
 
 app = Flask(__name__)
 app.secret_key = 'shlabittyboopityboo'
-#gedcoms = flaskext.uploads.UploadSet(name='gedcoms', extensions=('ged') + flaskext.uploads.ARCHIVES )
-#configure_uploads(app,(gedcoms))
+app.config['UPLOAD_FOLDER']="/Users/rolando/Downloads/gedtemp"
 
 migra = Migra()
 
 def jsonresponse(data):
-    resp = make_response(json.dumps(data,indent=4)) #,cls=MigraJSONEncoder))
+    resp = make_response(json.dumps(data,indent=4,cls=MigraPersonEncoder))
     resp.headers['Content-Type'] = 'application/json'
     return resp
 
 def __allowed_file(filename):
     return '.' in filename and \
         filename.rsplit('.', 1)[1] in ['ged','zip']
-           
+
 @app.route('/')
 def index():
     """ Just displays the index template """
@@ -33,22 +31,35 @@ def index():
 def upload():
     """ Get the file and the search term from the upload, turn it into a gedcom, do something with this """
     query = request.form['q']
-    file = request.files['gedcom']
-    if file and __allowed_file(file.filename):
-        ( g, p ) = migra.processGedcom(file,query)
-        session['g']=g
-        return jsonresponse({'people':p})
-        
-    return jsonresponse({'error': 'This is terrible'})
 
-@app.route('/test',methods=['GET','POST'])
-def test():
-    return jsonresponse({'hello': 'dingleberry'})
+    import os
+    from tempfile import NamedTemporaryFile
+    file = request.files['gedcom']
+    
+    if file and __allowed_file(file.filename):
+        ( fullDict, filteredList ) = migra.processGedcom(file,query)
+
+        f = NamedTemporaryFile(suffix='.ged',dir=app.config['UPLOAD_FOLDER'],delete=False)
+        fn = f.name
+        f.write(json.dumps(fullDict,indent=4,cls=MigraPersonEncoder))
+        f.close()
+        
+        session['gedcomfile'] = fn.split("/")[-1]
+
+        return jsonresponse({'people':filteredList,'parameters':{'query':query}})
+    else:
+        raise MigraError, ("File not allowed")
+        
+    raise MigraError, ("I don't even know what is happening")
 
 @app.route('/walk',methods=['GET','POST'])
 def walk():
     """Now we have to find our file and send it to gedcom -- unless we can attach the gedcom created earlier via session!"""
-    return jsonresponse(migra.walk(session['g'],request.form['i'],request.form['d']))
+    f = open('/'.join((app.config['UPLOAD_FOLDER'],session['gedcomfile'])),'r')    
+    d = json.load(f)
+    f.close()
+    
+    return jsonresponse( migra.walk(d,request.form['i'],request.form['d']) )
     
 @app.route('/cache',methods=['POST'])
 def cache():

@@ -51,7 +51,7 @@ function Address ( placename, latlng )
     }
     
     this.cache = function() {
-        action = "/cgi-bin/migra/migra.py"
+        action = "migra.py"
         //Given an address, send an AJAX request to cache 
         //We don't even care if it works.
         $.ajax({
@@ -150,7 +150,7 @@ function AncestryLink ( parentID, childID )
     	this.polyLine = new google.maps.Polyline(plOptions);
     	overlays.polylines.push ( this.polyLine );
     
-        //I wish this addListener were for an iNfoWindow. Some day.
+        //On click show path from this person to the focal individual
         google.maps.event.addListener(this.polyLine, 'click', function()
             { 
                 this.link.parent.showPathToFocus ( );
@@ -165,28 +165,33 @@ function Person ( jsonPerson )
     //Give a json person, turn it into "our" person. more or less the same but automatically gets latlng
     this.id = jsonPerson["id"];
     this.name = jsonPerson["name"];
+
     this.generation = jsonPerson["generation"];
     this.sex = jsonPerson["sex"];
-    this.date = jsonPerson["date"];
-    this.placename = jsonPerson["placename"];
-    this.name = jsonPerson["name"];
-    this.sexratio = jsonPerson["sexratio"];
     this.path = jsonPerson["path"];
+    try
+    {
+        this.date = jsonPerson["location"]["date"];
+        this.placename = jsonPerson["location"]["name"];
+    }
+    catch ( e ) 
+    {
+        this.date = null;
+        this.placename = null;
+    }
     
     data.people[this.id] = this;
     
+    this.sexratio = 0;
     this.parentLinks = [];
     this.childLinks = [];
 
-    if ( this.placename === undefined ) 
-    { 
+    if ( ! this.placename ) { 
         this.latlng = null;
-    }
-    else
-    {
+    } else {
         if ( data.addresses[this.placename] === undefined )
         {
-            this.latlng = ( jsonPerson["latlng"] == null ) ? null : new google.maps.LatLng(jsonPerson.latlng["lat"], jsonPerson.latlng["lng"]);
+            this.latlng = ( jsonPerson["location"]["latlng"] == null ) ? null : new google.maps.LatLng(jsonPerson.location.latlng.lat, jsonPerson.location.latlng.lng);
             data.addresses[this.placename] = new Address ( this.placename, this.latlng );
         }
         
@@ -206,7 +211,7 @@ function Person ( jsonPerson )
         var curLink;
         var path = [];
         var tempMarkers = [];
-        var s = new OverlappingMarkerSpiderfier(map);
+//        var s = new OverlappingMarkerSpiderfier(map);
         var m;
 
         //we are going to hide all links and just show the path from this individual to the focus individual.
@@ -214,13 +219,13 @@ function Person ( jsonPerson )
 
         curLink = this.childLinks[0];
         m = curLink.parent.addMarker();
-        s.addMarker(m);
+//        s.addMarker(m);
         tempMarkers.push ( m );
         path.push ( curLink.parent.loc );
         while ( curLink && curLink.child ) {
             m = curLink.child.addMarker();
             tempMarkers.push ( m );
-            s.addMarker(m);
+//            s.addMarker(m);
             if ( curLink.child.loc ) path.push (curLink.child.loc);
             curLink = curLink.child.childLinks[0]; //There should only be one.
         }
@@ -231,14 +236,16 @@ function Person ( jsonPerson )
             strokeColor: "orange",
             weight: 4,
             map: map,
-            points: tempMarkers,
-            spider: s
+            points: tempMarkers
+//            spider: s
         };
         
         newLine = new google.maps.Polyline(plOptions)
+        
+        //When this new line is clicked, return everything to its original state
         google.maps.event.addListener(newLine, 'click', function() { 
             this.setMap(null);
-            s.setMap(null);
+//            s.setMap(null);
             for ( j = 0; j < tempMarkers.length; j ++ )
             {
                 tempMarkers[j].setMap(null);
@@ -267,8 +274,6 @@ function Person ( jsonPerson )
     	    default:
     	        markerCharacter = this.generation - 2;
     	}
-    	
-    	//console.log ( "Marker location: " + this.loc.lat() + ", " + this.loc.lng() );
     	
     	var markerOpts = {
     		position: this.loc, 
@@ -424,7 +429,7 @@ function buildPeopleList(httpData)
         $.each(httpData.people, function(key, person) {
             i++;
             updateProgressBar(i,httpData.people.length,true);
-            value = person.name + ( person.birth ? " (b. " + person.birth + ")" : "" );
+            value = person.name + ( person.birth ? " (b. " + person.birth.date + ")" : "" );
             $('#i_select')
                  .append($('<option>', { value : person.id })
                  .text(value)); 
@@ -518,7 +523,10 @@ function showMigrations ( )
 
 function showAllOverlays(toggle)
 {
-    if ( ! toggle ) clusterer.clearMarkers();
+    if ( ! toggle ) {
+        clusterer.clearMarkers();
+        spiderifier.clearMarkers();
+    }
     
     for ( var i = 0; i < overlays.markers.length; i ++ ) 
     {
@@ -530,10 +538,13 @@ function showAllOverlays(toggle)
         overlays.polylines[i].setVisible(toggle);
     }
     
-    if ( toggle ) clusterer.addMarkers ( overlays.markers );
     if ( toggle ) 
     {
-        spiderifier.addMarker ( overlays.markers[i] );
+        clusterer.addMarkers ( overlays.markers );
+        for ( var i = 0; i < overlays.markers.length; i ++ ) 
+        {
+            spiderifier.addMarker ( overlays.markers[i] );
+        }
     }
 }
 

@@ -22,7 +22,7 @@
 #
 # To contact the author, see http://faculty.cs.byu.edu/~zappala
 
-__all__ = ["Gedcom", "Element", "GedcomParseError"]
+__all__ = ["Gedcom", "Element", "GedcomParseError", "GedcomIndividual" ]
 
 # Global imports
 import string
@@ -93,10 +93,7 @@ class Gedcom(object):
                 
             for sig, siglen, enc in bom_info:
                 if l.startswith(sig):
-                    import sys
-                    sys.stderr.write ( "ENCODING: %s\n" % enc )
-                    sys.stderr.write ( "LINE <%s>\n" % l[siglen:] )
-                    return l[siglen:]
+                    l = l[siglen:]
         finally:
             return l
 
@@ -227,7 +224,7 @@ class GedcomParseError(Exception):
     def __str__(self):
         return `self.value`
 
-class Element:
+class Element(object):
     """ Gedcom element
 
     Each line in a Gedcom file is an element with the format
@@ -473,6 +470,7 @@ class Element:
                 f = self.__dict.get(e.value(),None)
                 if f != None:
                     results.append(f)
+
         return results
 
     def name(self):
@@ -523,21 +521,23 @@ class Element:
 
     def __event(self,event):
         """ Return the location tuple of the given type as (date,place) """
-        date = ""
-        place = ""
         if not self.individual():
-            return (date,place)
+            return None;
+
+        date = None
+        place = None
 
         for e in self.children():
             if e.tag() == event:
+                result = ( None, None )
                 for c in e.children():
                     if c.tag() == "DATE":
                         date = c.value()
                     if c.tag() == "PLAC":
                         place = c.value()
         
-        return (date,place)
-
+        return None if ( date, place ) == ( None, None ) else ( date, place )
+        
     def __event_year(self,event):
         """ Return the event year of a person in integer format """
         date = ""
@@ -607,28 +607,28 @@ class Element:
     	return parents
 
     def marriages(self):
-        """ Return a list of marriage tuples for a person, each listing
-        (date,place).
+        """ Return a list of marriage hashes for a person
         """
         marriages = []
         if not self.individual():
             return marriages
+            
         for e in self.children():
             if e.tag() == "FAMS":
                 f = self.__dict.get(e.value(),None)
                 if f != None:
-	                for g in f.children():
+                    mar = { "family": e, "spouse": None, "date": None, "place": None }
+                    for g in f.children():
 	                    if g.tag() == "MARR":
-	                        date = ""
-	                        place = ""
-
 	                        for h in g.children():
 	                            if h.tag() == "DATE":
-	                                date = h.value()
+	                                mar["date"] = h.value()
 	                            if h.tag() == "PLAC":
-	                                place = h.value()
+	                                mar["place"] = h.value()
+	                    elif ( g.tag() == "HUSB" or g.tag() == "WIFE" ) and g.value() != self.pointer():
+	                        mar["spouse"] = self.__dict.get(g.value())
 	                                
-	                        marriages.append((date,place))
+                    marriages.append(mar)             
 
         return marriages
 
@@ -652,24 +652,9 @@ class Element:
         """
         result = []
 
-        b = self.birth()
-        if b != ("",""):
-            result.append(b)
-
-        d = self.death()
-       	if d != ("",""):
-       	    result.append(d)
-       	    
-       	for m in self.marriages():
-       	    result.append(m)
-        
-        bap = self.baptism()
-        if bap != ("",""):
-            result.append(bap)
-            
-        bur = self.burial()
-        if bur != ("",""):
-            result.append(bur)
+        for p in [ self.birth(), self.death(), self.baptism(), self.burial() ]:
+            if p != None:
+                result.append( p )
         
         return result
 
@@ -679,7 +664,7 @@ class Element:
         for e in self.children():
             result += '\n' + e.get_individual()
         return result
-
+        
     def get_family(self):
         result = self.get_individual()
         for e in self.children():
@@ -688,7 +673,27 @@ class Element:
                 if f != None:
                     result += '\n' + f.get_individual()
         return result
+
+    def family(self):
+        """ Gets the pointer of the family for which this person was a member """
+       	if not self.individual():
+    		return None
+
+        for e in self.children():
+            if e.tag() == "FAMC":
+                return e
+            
+        return None
     
+    def offspring(self):
+        results = []
+        for f in self.families():
+            for e in f.children():
+                if e.tag() == "CHIL":
+                    results.append(self.__dict.get(e.value()))
+
+        return results
+            
     def __str__(self):
         """ Format this element as its original string """
         result = str(self.level())
@@ -698,3 +703,55 @@ class Element:
         if self.value() != "":
             result += ' ' + self.value()
         return result
+        
+        
+class GedcomIndividual(object):
+    '''this is a class that is useful for pickling, etc.'''
+    def __init__(self,e):
+        if not e.individual():
+            raise ValueError, ("the element passed to GedcomIndividual should be an individual")
+        self.__id = e.pointer()
+        self.__name = e.full_name()
+        self.__birth = e.birth()
+        self.__death = e.death()
+        self.__sex = e.sex()
+        self.__marriages = [ { 'spouse': m['spouse'].pointer() if m['spouse'] else None,
+                               'date': m['date'],
+                               'place': m['place']
+                             } for m in e.marriages() ]
+        parents = e.parents()
+        self.__father = parents[0].pointer() if parents[0] is not None else None
+        self.__mother = parents[1].pointer() if parents[1] is not None else None
+        self.__offspring = [ o.pointer() if o is not None else None for o in e.offspring() ]
+        
+    def id(self):
+        return self.__id
+    
+    def name(self):
+        return self.__name
+        
+    def birth(self):
+        return { 'date': self.__birth[0], 'place': self.__birth[1] } if self.__birth is not None else None
+    
+    def death(self):
+        return { 'date': self.__death[0], 'place': self.__death[1] } if self.__death is not None else None
+
+        
+    def marriages(self):
+        return self.__marriages
+        
+    def sex(self):
+        return self.__sex
+        
+    def parents(self):
+        return { 'father': self.__father, 'mother': self.__mother }
+        
+    def offspring(self):
+        return self.__offspring
+    
+class GedcomFamily(object):
+    '''this is a class that is useful for pickling, etc.'''
+    def __init__(self,e):
+        return
+
+
