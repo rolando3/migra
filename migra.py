@@ -137,7 +137,7 @@ class MigraHelper:
         and returns the year """ 
     
         year = None
-        if pl[0] != "":
+        if pl[0] != '':
             try:
                 datel = pl[0].split()
                 if len(datel) > 0:
@@ -161,8 +161,8 @@ class MigraHelper:
         for pl in i.places():
             year = cls.get_year(pl)
     
-            if pl[1] != "" and pl[1] != "Unknown":
-                if ( best == None ) and ( pl[0] == "" ):
+            if pl[1] != '' and pl[1] != 'Unknown':
+                if ( best == None ) and ( pl[0] == '' ):
                     best = pl
                 elif ( year != None ):
                     return pl
@@ -174,13 +174,13 @@ class MigraHelper:
         import sys
         people = []
     
-        if not q: sys.stderr.write ( "No query string received.\n" )
+        if not q: sys.stderr.write ( 'No query string received.\n' )
 
         q = q.lower()
 
         filtered = []
         for p in l:
-            uname = unicode(p.name(),"utf-8").lower()
+            uname = unicode(p.name(),'utf-8').lower()
             if ( uname.find(q) >= 0 ):    
                 filtered.append ( p )
 
@@ -203,16 +203,20 @@ class MigraGeocoder:
         
         try:
             import os
-            self.__con = psycopg2.connect(os.environ.get("DATABASE_URL",""))
+            pieces = os.environ.get('DATABASE_URL','').split(":")
+            username = pieces[1][2:]
+            ( password, host ) = pieces[2].split("@")
+            ( port, dbname ) = pieces[3].split("/")
+            self.__con = psycopg2.connect( "user=%s password=%s host=%s port=%s dbname=%s" % ( username, password, host, port, dbname ) )
         except:
             import traceback
-            sys.stderr.write ( "Cannot connect to database." + ''.join(traceback.format_exception( *sys.exc_info())[-2:]).strip().replace('\n',': ') )
+            sys.stderr.write ( 'Cannot connect to database (%s:%s/%s): %s.' % ( host, port, dbname, ''.join(traceback.format_exception( *sys.exc_info())[-2:]).strip().replace('\n',': ') ) )
                     
     def geocode ( self, placename ):
         """ Look on our database for a stored geocode. If none, return None """
         if placename is None: return None
         
-        sql = "SELECT lat, lng FROM geocode WHERE placename = %s"
+        sql = 'SELECT lat, lng FROM geocode WHERE placename = %s'
         try:
             cur = self.__con.cursor()
             cur.execute(sql,[placename])
@@ -222,21 +226,21 @@ class MigraGeocoder:
 
         except:
             import traceback
-            sys.stderr.write ( "Error finding cached geo location. %s \n" % ''.join(traceback.format_exception( *sys.exc_info())[-2:]).strip().replace('\n',': ') )
+            sys.stderr.write ( 'Error finding cached geo location. %s \n' % ''.join(traceback.format_exception( *sys.exc_info())[-2:]).strip().replace('\n',': ') )
             
         return None
         
     def cache ( self, location ):
         """ Given a location name, store it in the database. Result is irrelevant """
-        sql = "INSERT INTO geocode ( placename, lat, lng ) VALUES ( %s, %s, %s );"
+        sql = 'INSERT INTO geocode ( placename, lat, lng ) VALUES ( %s, %s, %s );'
         try:
             cur = self.__con.cursor()
             cur.execute(sql,[ location.name(), location.lat(), location.lng() ])
             self.__con.commit()
-            sys.stderr.write ( "Cached <%s>." % unicode(location.name()).encode("utf-8") )
+            sys.stderr.write ( 'Cached <%s>.' % unicode(location.name()).encode('utf-8') )
         except:
             import traceback
-            sys.stderr.write (  "Error caching location ( %s, lat: %s, lng: %s)\n" % ( unicode(location.name()).encode("utf-8"), location.lat(), location.lng() ) + ''.join(traceback.format_exception( *sys.exc_info())[-2:]).strip().replace('\n',': ') )
+            sys.stderr.write (  'Error caching location ( %s, lat: %s, lng: %s)\n' % ( unicode(location.name()).encode('utf-8'), location.lat(), location.lng() ) + ''.join(traceback.format_exception( *sys.exc_info())[-2:]).strip().replace('\n',': ') )
             return {'status': {'message': 'FAIL', 'code': -1} }
             
         return {'status': { 'message': 'OK', 'code': 0 } }
@@ -275,5 +279,5 @@ class Migra:
         return { 'people': walker.people(), 'links': walker.links(), 'parameters': { 'id': id, 'depth': depth } }
         
     def cache ( self, parms ):
-        print MigraGeocoder().cache ( MigraLocation(parms["name"],parms["lat"],parms["lng"]) )
+        print MigraGeocoder().cache ( MigraLocation(parms['name'],parms['lat'],parms['lng']) )
 
