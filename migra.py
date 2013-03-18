@@ -1,6 +1,6 @@
 import sys
 import json
-import psycopg2
+import psycopg2    
 
 from gedcom import *
 
@@ -195,7 +195,6 @@ class MigraError(Exception):
 
 class MigraGeocoder:
     """This class is for getting stored geocodes"""
-    
     def __init__ ( self ):
         """Connect to our database"""
         
@@ -204,10 +203,7 @@ class MigraGeocoder:
         
         try:
             import os
-            self.__con = psycopg2.connect(
-                database=os.environ.get('MIGRADB_DATABASE','migra'),
-                user=os.environ.get('MIGRADB_USER','postgres'),
-                password=os.environ.get('MIGRADB_PASSWORD',''))
+            self.__con = psycopg2.connect(os.environ.get("DATABASE_URL",""))
         except:
             import traceback
             sys.stderr.write ( "Cannot connect to database." + ''.join(traceback.format_exception( *sys.exc_info())[-2:]).strip().replace('\n',': ') )
