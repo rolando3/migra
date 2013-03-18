@@ -7,16 +7,12 @@ from gedcom import *
 #this will be set in the geocoder's init
 geocoder = None
 
-__all__ = [
-    "Migra",
-    "MigraPersonEncoder",
-    "MigraGeocoder" ]
+__all__ = [ 'Migra', 'MigraPersonEncoder' ]
 
 class MigraWalker:
     def __init__(self,dict,id,depth):
         self.__cache = dict
         self.__maxDepth = int(depth)
-
         self.__focusID = id
         
         self.__people = []
@@ -85,7 +81,7 @@ class MigraPerson (GedcomIndividual):
             }
     
     def path(self,path=None):
-        #given a path from the "ego" set our path attribute.
+        #given a path from the 'ego' set our path attribute.
         if path is not None:
             self.__path = path
 

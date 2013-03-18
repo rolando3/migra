@@ -1,14 +1,15 @@
 #!/opt/local/bin/python
 #flask implementation of my migra web app
 
-from migra import Migra, MigraPersonEncoder, MigraGeocoder
+from migra import Migra, MigraPersonEncoder
 from flask import Flask, make_response, request, render_template, url_for, session
 import json
 import sys
+import os
 
 app = Flask(__name__)
-app.secret_key = 'shlabittyboopityboo'
-app.config['UPLOAD_FOLDER']="/Users/rolando/Downloads/gedtemp"
+app.config['SESSION_SECRETKEY'] = os.environ['MIGRA_SESSIONKEY'] or 'shlabittyboopityboo'
+app.config['UPLOAD_FOLDER'] = os.environ['MIGRA_UPLOADFOLDER'] or '/Users/rolando/Downloads/gedtemp'
 
 migra = Migra()
 
@@ -44,13 +45,13 @@ def upload():
         f.write(json.dumps(fullDict,indent=4,cls=MigraPersonEncoder))
         f.close()
         
-        session['gedcomfile'] = fn.split("/")[-1]
+        session['gedcomfile'] = fn.split('/')[-1]
 
         return jsonresponse({'people':filteredList,'parameters':{'query':query}})
     else:
-        raise MigraError, ("File not allowed")
+        raise MigraError, ('File not allowed')
         
-    raise MigraError, ("I don't even know what is happening")
+    raise MigraError, ('I don\'t even know what is happening')
 
 @app.route('/walk',methods=['GET','POST'])
 def walk():
