@@ -375,6 +375,11 @@ function addEventListeners()
         });
     });
 
+    $('#reset_form').submit(function (e) {
+        clearMap();
+    });
+        
+
 }
 
 function processForm(form, e, successfunction )
