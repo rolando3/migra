@@ -205,9 +205,9 @@ class MigraGeocoder:
         try:
             import os
             self.__con = psycopg2.connect(
-                database= os.environ['MIGRADB_DATABASE'],
-                user= os.environ['MIGRADB_USER'],
-                password=os.environ['MIGRADB_PASSWORD'])
+                database=os.environ.get('MIGRADB_DATABASE','migra')
+                user=os.environ.get('MIGRADB_USER','postgres'),
+                password=os.environ.get('MIGRADB_PASSWORD',''))
         except:
             import traceback
             sys.stderr.write ( "Cannot connect to database." + ''.join(traceback.format_exception( *sys.exc_info())[-2:]).strip().replace('\n',': ') )

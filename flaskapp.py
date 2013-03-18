@@ -8,8 +8,8 @@ import sys
 import os
 
 app = Flask(__name__)
-app.config['SESSION_SECRETKEY'] = os.environ['MIGRA_SESSIONKEY'] or 'shlabittyboopityboo'
-app.config['UPLOAD_FOLDER'] = os.environ['MIGRA_UPLOADFOLDER'] or '/Users/rolando/Downloads/gedtemp'
+app.config['SESSION_SECRETKEY'] = os.environ.get('MIGRA_SESSIONKEY','shlabittyboopityboo')
+app.config['UPLOAD_FOLDER'] = os.environ('MIGRA_UPLOADFOLDER','/Users/rolando/Downloads/gedtemp')
 
 migra = Migra()
 
@@ -36,6 +36,8 @@ def upload():
     import os
     from tempfile import NamedTemporaryFile
     file = request.files['gedcom']
+    
+    #uploads not permitted in Heroku. Need to send this over to amazon. For now this will have to do.
     
     if file and __allowed_file(file.filename):
         ( fullDict, filteredList ) = migra.processGedcom(file,query)
