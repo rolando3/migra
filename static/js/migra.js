@@ -51,7 +51,7 @@ function Address ( placename, latlng )
     }
     
     this.cache = function() {
-        action = "migra.py"
+        action = "/cache"
         //Given an address, send an AJAX request to cache 
         //We don't even care if it works.
         $.ajax({
