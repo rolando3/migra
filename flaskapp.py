@@ -42,7 +42,6 @@ class LocalFileStorage:
         return d
 
 class AmazonS3FileStorage:
-
     @classmethod
     def __key(cls,k=None):
         from boto.s3.connection import S3Connection, Key
@@ -110,7 +109,7 @@ def walk():
 @app.route('/cache',methods=['POST'])
 def cache():
     '''this caches the data sent. we don't care about the results (though maybe we should) '''
-    return migra.cache(request.form['data'])
+    return jsonresponse( migra.cache(request.form['data']) )
     
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=True)

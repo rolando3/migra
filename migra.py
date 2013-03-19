@@ -279,5 +279,6 @@ class Migra:
         return { 'people': walker.people(), 'links': walker.links(), 'parameters': { 'id': id, 'depth': depth } }
         
     def cache ( self, parms ):
-        print MigraGeocoder().cache ( MigraLocation(parms['name'],parms['lat'],parms['lng']) )
+        o = json.loads(parms)
+        return MigraGeocoder().cache ( MigraLocation(o['name'],o['lat'],o['lng']) )
 
