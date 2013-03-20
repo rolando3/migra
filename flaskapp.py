@@ -13,7 +13,7 @@ app.config['UPLOAD_FOLDER'] = os.environ.get('MIGRA_UPLOADFOLDER','')
 migra = Migra()
 
 def fileStorageClass():
-    return AmazonS3FileStorage
+    return LocalFileStorage
 
 def jsonresponse(data):
     resp = make_response(json.dumps(data,indent=4,cls=MigraPersonEncoder))
@@ -40,6 +40,11 @@ class LocalFileStorage:
         d = json.load(f)
         f.close()
         return d
+        
+    @classmethod
+    def cleanup(cls, age):
+        """ delete all files more than age seconds old """
+        pass
 
 class AmazonS3FileStorage:
     @classmethod
@@ -72,6 +77,11 @@ class AmazonS3FileStorage:
     def get_file(cls,k):
         awsKey = cls.__key(k)
         return json.loads(awsKey.get_contents_as_string())
+
+    @classmethod
+    def cleanup(cls, age):
+        """ delete all keys more than age seconds old """
+        pass
         
 
 def __allowed_file(filename):

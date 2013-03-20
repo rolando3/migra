@@ -302,11 +302,12 @@ function Person ( jsonPerson )
             this.parentLinks[j].draw();
         }
         
+/*
         google.maps.event.addListener(m, 'click', function()
             { 
                 m.person.showPathToFocus ( );
             });
-
+*/
     }
 
 }
@@ -364,12 +365,14 @@ function addEventListeners()
     
     //When our forms are submitted we want to process their forms. When those are done we want to do things.
     $('#upload_form').submit(function (e) {
+        $('#spinner').show();
         processForm(this, e,function (result) {
             buildPeopleList(result);
         });
     });
     
     $('#walk_form').submit(function (e) {
+        $('#spinner').show();
         processForm(this, e,function (result) {
             drawMap(result);
         });
@@ -441,10 +444,12 @@ function buildPeopleList(httpData)
         });
         $('#upload_form_wrapper').hide();
         $('#walk_form_wrapper').show();
+        $('#spinner').hide();
     }
     else
     {
         //This is an error.
+        $('#spinner').hide();
         showError ( "No entries found matching \"{0}.\"".format ( options["query"] ) );
     }
 }
@@ -488,12 +493,13 @@ function progressFunctionLocations() {
 	updateProgressBar(locationStatus.geocoded + locationStatus.error,locationStatus.total - locationStatus.cache,true);
     if ( locationStatus.geocoded + locationStatus.cache + locationStatus.error >= locationStatus.total )
     {
+        $('#spinner').hide();
         showProgress ( "Mapped {0} individuals at {4} distinct locations ({1} geocoded and cached, {2} retrieved from cache, {3} errors).".format ( Object.keys(data.people).length, locationStatus.geocoded, locationStatus.cache, locationStatus.error, locationStatus.total ) );
 	}
 }
 
 function updateProgressBar(i,total,computable) {
-    
+
     computable = typeof computable !== 'undefined' ? computable : true;
     
     var progressBar = document.getElementById("progressBar"); 
