@@ -13,7 +13,7 @@ app.config['UPLOAD_FOLDER'] = os.environ.get('MIGRA_UPLOADFOLDER','')
 migra = Migra()
 
 def fileStorageClass():
-    return LocalFileStorage
+    return AmazonS3FileStorage
 
 def jsonresponse(data):
     resp = make_response(json.dumps(data,indent=4,cls=MigraPersonEncoder))
