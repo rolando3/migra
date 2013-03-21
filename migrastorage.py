@@ -73,10 +73,13 @@ class AmazonS3FileStorage:
 
     @classmethod
     def cleanup(cls, age):
+        from boto.s3.connection import Key
         """ delete all keys more than age seconds old """
         print ( "deleting everything over %s seconds old" % age )
         b = cls.__bucket()
+        key = Key(b)
         for k in b.list():
-            print ( "Checking key %s" % k )
+            key.key = k
+            print ( "Checking key %s (last modified: %s)" % ( k, key.last_modified ) )
         
 
