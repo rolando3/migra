@@ -41,27 +41,29 @@ class AmazonS3FileStorage:
 
         conn = S3Connection(os.environ['AWS_ACCESSKEY'], os.environ['AWS_SECRETKEY'])
         return conn.get_bucket('migra_g.heroku')
-        
     
     @classmethod
     def __key(cls,k=None):
         from boto.s3.connection import Key
+        from time import gmtime
+        from calendar import timegm
+        from random import choice
+        
         key = Key(cls.__bucket())
         if k is None:
-            import random
+            key.set_metadata('time',timegm(gmtime()))
+
             from string import ascii_lowercase as letters
             k = ''
             for i in range(12):
-                k += random.choice(letters)
-                
+                k += choice(letters)
+                    
         key.key = k
         return key
 
     @classmethod
     def store_file(cls,d):
         awsKey = cls.__key()
-        
-        sys.stderr.write ( "KEY *** %s ***\n" % awsKey )
         awsKey.set_contents_from_string(json.dumps(d,indent=4,cls=MigraPersonEncoder))
 
         return awsKey.key
@@ -72,14 +74,34 @@ class AmazonS3FileStorage:
         return json.loads(awsKey.get_contents_as_string())
 
     @classmethod
-    def cleanup(cls, age):
-        from boto.s3.connection import Key
-        """ delete all keys more than age seconds old """
-        print ( "deleting everything over %s seconds old" % age )
-        b = cls.__bucket()
-        key = Key(b)
-        for k in b.list():
-            key.key = k
-            print ( "Checking key %s (last modified: %s)" % ( k, key.last_modified ) )
-        
+    def check_key(cls,k):
+        awsKey = cls.__key(k)
+        return awsKey.key
 
+    @classmethod
+    def list_keys(cls):
+        from boto.s3.connection import Key
+        b = cls.__bucket()
+        return [ k.key for k in b.list() ]
+
+    @classmethod
+    def cleanup(cls, age):
+        """ delete all keys more than age seconds old """
+
+        from boto.s3.connection import Key
+        from time import gmtime
+        from calendar import timegm
+        import logging
+
+        delcount = 0        
+        curtime = timegm(gmtime())
+        b = cls.__bucket()
+        for k in b.list():
+            key = Key(b)
+            key.key = k
+            t = key.get_metadata('time')
+            if t is None or ( curtime - t > age ):
+                delcount =+ 1
+                b.delete_key(k)
+
+        logging.info ( "Deleted %s old files." % delcount )
