@@ -2,7 +2,7 @@ from apscheduler.scheduler import Scheduler
 
 sched = Scheduler()
 
-@sched.interval_schedule(minutes=)
+@sched.interval_schedule(minutes=3)
 def timed_job():
     print 'This job is run every three minutes.'
 
