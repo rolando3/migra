@@ -1,6 +1,6 @@
 import sys
 import json
-import psycopg2    
+import psycopg2
 
 from gedcom import *
 
