@@ -1,5 +1,6 @@
 from apscheduler.scheduler import Scheduler
 from migrastorage import fileStorage
+import time
 
 sched = Scheduler()
 
@@ -12,3 +13,8 @@ def cleanup_job():
 #    print 'This job is run every weekday at 5pm.'
 
 sched.start()
+
+while True:
+    time.sleep(10)
+
+sched.shutdown()
