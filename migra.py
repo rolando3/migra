@@ -245,6 +245,13 @@ class MigraGeocoder:
             
         return {'status': { 'message': 'OK', 'code': 0 } }
 
+    def countcachedaddresses(self):
+        sql = 'SELECT count(*) FROM geocode;'
+        cur = self.__con.cursor()
+        cur.execute(sql)
+        result = cur.fetchone()
+        return result[0]
+
 class Migra:
     def __init__(self):
         MigraGeocoder()
