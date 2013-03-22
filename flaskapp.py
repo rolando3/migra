@@ -1,4 +1,5 @@
-#!/opt/local/bin/python
+#!/usr/bin/env python
+
 #flask implementation of my migra web app
 
 from migra import Migra, MigraPersonEncoder
