@@ -7,6 +7,7 @@ var overlays = { markers: [], polylines: [] };
 var locationStatus = { cache: 0, total: 0, geocoded: 0, error: 0 };
 var options = {};
 var spiderifier;
+var stat;
 
 //first, checks if it isn't implemented yet
 if (!String.prototype.format) {
@@ -27,16 +28,85 @@ if (!String.prototype.repeat) {
     }
 }
 
-function showProgress (text) 
+function initialize() 
 {
-    //show progress on the bar. log the same message.
-    $("#message_pad").text (text);
-    console.log(text);
+    //initialize our stuff: the map, its constituent thingies
+    var myOptions = {
+        zoom: 3,
+        center: new google.maps.LatLng(30,-60),
+        mapTypeId: google.maps.MapTypeId.ROADMAP
+    };
+
+    stat = new MigraStatus();
+    stat.actionStart ("Initializing")
+    //the map has a few goodies.
+    map = new google.maps.Map(document.getElementById('map_canvas'), myOptions);
+    clusterer = new MarkerClusterer ( map, [], { maxZoom: 10 } );
+    geocoder = new google.maps.Geocoder();
+    spiderifier = new OverlappingMarkerSpiderfier(map);
+
+    //initialize all the map variables    
+    clearMap();
+    addEventListeners();
+
+    stat.actionEnd("Initialized");
+    //show our upload form.
+    $('#upload_form_wrapper').show();
 }
 
-function showError ( text ) 
+function MigraStatus ()
 {
-    window.alert ( text );
+    this.actionStart = function(desc)
+    {
+        this.info(desc);
+        $('#spinner').show();
+    }
+    
+    this.actionUpdate = function(i,total)
+    {
+        if ( total = 0 ) return;
+        
+        var progressBar = document.getElementById("progressBar"); 
+        var percentageDiv = document.getElementById("percentageCalc"); 
+        
+        progressBar.max = total; 
+        progressBar.value = i; 
+        percentageDiv.innerHTML = Math.round(i / total * 100) + "%"; 
+        
+        return;
+    }
+    
+    this.actionEnd = function(msg)
+    {
+        this.info(msg);
+        $('#spinner').hide();
+    }
+    
+    this.actionError = function(msg)
+    {
+        this.error(msg);
+        $('#spinner').hide();
+    }
+    
+    this.info = function(msg)
+    {
+    //show progress on the bar. log the same message.
+        $("#message_pad").text (msg);
+        console.log(msg);
+    }
+    
+    this.warning = function(msg)
+    {
+        $("#message_pad").text (msg);
+        console.log(msg);
+    }
+    
+    this.error = function(msg)
+    {
+        $("#message_pad").text (msg);
+        console.log(msg);
+        window.alert ( msg );
+    }
 }
 
 function Address ( placename, latlng ) 
@@ -92,7 +162,7 @@ function findAddress(address)
      	geocoder.geocode( { 'address': address.placename }, function ( results, status ) {
        		if (status == google.maps.GeocoderStatus.OK ) 
        		{
-    		    showProgress ( "Geocoded {0}.".format(address.placename) );
+    		    stat.info ( "Geocoded {0}.".format(address.placename) );
                 address.loc = results[0].geometry.location;
                 address.draw();
                 address.cache();
@@ -104,7 +174,7 @@ function findAddress(address)
     		}
     		else
     		{
-    		    showProgress ( "Error finding {0}: {1}.".format ( address.placename , status ) );
+    		    stat.info ( "Error finding {0}: {1}.".format ( address.placename , status ) );
     		    locationStatus.error ++;
     		}
     		progressFunctionLocations();
@@ -337,43 +407,22 @@ function clearMap()
       
 }
 
-function initialize() 
-{
-    //initialize our stuff: the map, its constituent thingies
-    var myOptions = {
-        zoom: 3,
-        center: new google.maps.LatLng(30,-60),
-        mapTypeId: google.maps.MapTypeId.ROADMAP
-    };
-
-    //the map has a few goodies.
-    map = new google.maps.Map(document.getElementById('map_canvas'), myOptions);
-    clusterer = new MarkerClusterer ( map, [], { maxZoom: 10 } );
-    geocoder = new google.maps.Geocoder();
-    spiderifier = new OverlappingMarkerSpiderfier(map);
-
-    //initialize all the map variables    
-    clearMap();
-    addEventListeners();
-
-    //show our upload form.
-    $('#upload_form_wrapper').show();
-}
-
 function addEventListeners() 
 {
     
     //When our forms are submitted we want to process their forms. When those are done we want to do things.
     $('#upload_form').submit(function (e) {
-        $('#spinner').show();
+        stat.actionStart("Uploading data");
         processForm(this, e,function (result) {
             buildPeopleList(result);
+            stat.actionEnd("List of people built");
         });
     });
     
     $('#walk_form').submit(function (e) {
-        $('#spinner').show();
+        stat.actionStart("Walking the genealogy");
         processForm(this, e,function (result) {
+            stat.actionStart("Genealogy walked. Drawing map");
             drawMap(result);
         });
     });
@@ -408,7 +457,8 @@ function processForm(form, e, successfunction )
           //The XMLHTTPRequest sends notifications as a file is uploaded. That's nice.
           myXhr = $.ajaxSettings.xhr();
           if (myXhr.upload) {
-            myXhr.upload.addEventListener('progress', function(evt) { updateProgressBar(evt.loaded,evt.total,evt.lengthComputable); }, false);
+            myXhr.upload.addEventListener('progress', function(evt) { stat.actionUpdate(evt.loaded,evt.total); }, false);
+            myXhr.upload.addEventListener('load', function(evt) { stat.actionStart("Server processing data"); } );
           }
           return myXhr;
         },
@@ -419,7 +469,7 @@ function processForm(form, e, successfunction )
         dataType: 'json',
         success: successfunction,
         error: function( xhr, httpStatus, msg ) { 
-            showError ( "Error in AJAX request: ({0}): {1}.".format( httpStatus , msg ) );
+            stat.error ( "Error in AJAX request: ({0}): {1}.".format( httpStatus , msg ) );
         }
     });
 }
@@ -436,21 +486,21 @@ function buildPeopleList(httpData)
         //We have found at least one match.
         $.each(httpData.people, function(key, person) {
             i++;
-            updateProgressBar(i,httpData.people.length,true);
-            value = person.name + ( person.birth ? " (b. " + person.birth.date + ")" : "" );
+            stat.actionUpdate(i,httpData.people.length);
+            value = "{0} {1}".format( person.name, person.birth ? " (b. " + person.birth.date + ")" : "" );
             $('#i_select')
-                 .append($('<option>', { value : person.id })
-                 .text(value)); 
+                 .append($('<option>', { value : person.id,
+                                         text: "{0} {1}".format( person.name, person.birth ? " (b. {0})".format(person.birth.date) : "" ) }
+
+                 )); 
         });
         $('#upload_form_wrapper').hide();
         $('#walk_form_wrapper').show();
-        $('#spinner').hide();
+        stat.actionEnd();
     }
     else
     {
-        //This is an error.
-        $('#spinner').hide();
-        showError ( "No entries found matching \"{0}.\"".format ( options["query"] ) );
+        stat.actionError( "No entries found matching \"{0}.\"".format ( options["query"] ) );
     }
 }
 
@@ -476,7 +526,7 @@ function drawMap ( httpData )
     locationStatus.total = addressNames.length;
     
     
-    showProgress ( "Ancestry parsed for {0}. {1} people retrieved. {2} links retrieved. {3} distinct addresses retrieved.".format ( httpData.people[0].name,  Object.keys(data.people).length, httpData.links.length, addressNames.length ) );
+    stat.info ( "Ancestry parsed for {0}. {1} people retrieved. {2} links retrieved. {3} distinct addresses retrieved.".format ( httpData.people[0].name,  Object.keys(data.people).length, httpData.links.length, addressNames.length ) );
     
     for ( i = 0; i < addressNames.length; i++)
     {
@@ -490,26 +540,12 @@ function drawMap ( httpData )
 
 
 function progressFunctionLocations() {
-	updateProgressBar(locationStatus.geocoded + locationStatus.error,locationStatus.total - locationStatus.cache,true);
+	stat.actionUpdate(locationStatus.geocoded + locationStatus.error,locationStatus.total - locationStatus.cache);
     if ( locationStatus.geocoded + locationStatus.cache + locationStatus.error >= locationStatus.total )
     {
-        $('#spinner').hide();
-        showProgress ( "Mapped {0} individuals at {4} distinct locations ({1} geocoded and cached, {2} retrieved from cache, {3} errors).".format ( Object.keys(data.people).length, locationStatus.geocoded, locationStatus.cache, locationStatus.error, locationStatus.total ) );
+        stat.actionEnd();
+        stat.info ( "Mapped {0} individuals at {4} distinct locations ({1} geocoded and cached, {2} retrieved from cache, {3} errors).".format ( Object.keys(data.people).length, locationStatus.geocoded, locationStatus.cache, locationStatus.error, locationStatus.total ) );
 	}
-}
-
-function updateProgressBar(i,total,computable) {
-
-    computable = typeof computable !== 'undefined' ? computable : true;
-    
-    var progressBar = document.getElementById("progressBar"); 
-    var percentageDiv = document.getElementById("percentageCalc"); 
-    if (computable)
-    { 
-        progressBar.max = total; 
-        progressBar.value = i; 
-        percentageDiv.innerHTML = Math.round(i / total * 100) + "%"; 
-    }
 }
 
 function showMigrations ( )
@@ -570,7 +606,7 @@ function showMigrationMarkers ( startRange, endRange )
         return;
     }
     
-    showProgress ( startRange + " - " + ( startRange + 30 ) );
+    stat.info ( startRange + " - " + ( startRange + 30 ) );
     
     for ( i = 0; i < peopleKeys.length; i++ )
     {
@@ -615,9 +651,6 @@ function getStrokeColor ( link ) {
 
 function getRelationshipDesc ( person ) 
 {
-    //This is clunky and not always right. Given a person, we know their sex and how many generations
-    //They are removed from the focal individual. This means we can describe (in English) their relationships
-    //to the person.
     var rel = ( person.generation == 0 ? "self" : ( person.sex == "M" ? "father" : "mother" ) );
 	if ( person.generation > 1 ) rel = "grand" + rel; 
 	if ( person.generation > 2 ) rel = "great-" + rel;
