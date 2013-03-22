@@ -49,17 +49,24 @@ class AmazonS3FileStorage:
         from calendar import timegm
         from random import choice
         
-        key = Key(cls.__bucket())
         if k is None:
-            key.set_metadata('time',timegm(gmtime()))
-
+            key = Key(cls.__bucket())
             from string import ascii_lowercase as letters
             k = ''
             for i in range(12):
                 k += choice(letters)
-                    
-        key.key = k
+            key.key = k
+            key.set_metadata('time',timegm(gmtime()))
+        else:
+            key = cls.__bucket().get_key(k)
+
         return key
+
+    @classmethod
+    def test_key(cls,k=None):
+        k = cls.__key(k)
+        print k.get_metadata('time')
+        return k
 
     @classmethod
     def store_file(cls,d):
@@ -80,9 +87,17 @@ class AmazonS3FileStorage:
 
     @classmethod
     def list_keys(cls):
-        from boto.s3.connection import Key
+        from time import gmtime
+        from calendar import timegm
         b = cls.__bucket()
-        return [ k.key for k in b.list() ]
+        result = []
+        for k in b.list():
+            if k.get_metadata('time') is None:
+                result.append ( ( k.key, None ) )
+            else:
+                result.append ( ( k.key, k.get_metadata('time') - timegm(gmtime()) ) )
+            
+        return result
 
     @classmethod
     def cleanup(cls, age):
@@ -97,10 +112,12 @@ class AmazonS3FileStorage:
         curtime = timegm(gmtime())
         b = cls.__bucket()
         for k in b.list():
-            key = Key(b)
-            key.key = k
+            key = b.get_key(k)
             t = key.get_metadata('time')
-            if t is None or ( curtime - t > age ):
+            if t is None:
+                #do nothing
+                pass
+            elif ( curtime - t > age ):
                 delcount =+ 1
                 b.delete_key(k)
 
