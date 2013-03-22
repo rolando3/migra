@@ -118,7 +118,7 @@ class AmazonS3FileStorage:
             if t is None:
                 #do nothing
                 pass
-            elif ( curtime - t > age ):
+            elif ( curtime - int(t) > age ):
                 delcount =+ 1
                 b.delete_key(k)
 

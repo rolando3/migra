@@ -3,23 +3,30 @@ html, body {
   padding: 0;
   height: 100%;
   font-family: Georgia, "Times New Roman", Times, serif;
-  background-color: white; //#9966ff;
+  background-color: #eeeeff;
 }
 
 header {
-    height: 10% !important;
-    color: #ff9900;
+    position: absolute;
+    z-index: 9998;
+    top: 0px;
+    width: 100%;
 }
 
 header h1 {
     font-weight: bold;
+    color: #ff9900;
+    text-align: center;
+//    vertical-align: middle;
     font: 50px/40px "Arial Black", "Helvetica Black", Gadget, sans-serif;
-    text-shadow: 1px 1px 0 #e0e0ff;
-    margin: 0px;
+    text-shadow: 1px 1px 0 #4444dd;
+    height: 7.5%;
+    margin: 0 0 10px 0;
+    padding: 5px;
 }
 
 #map_section {
-    height: 85%;
+    height: 100%;
     width: 100%;
 }
 
@@ -29,23 +36,31 @@ header h1 {
 }
 
 footer {
-    height: 5%;
+    position: absolute;
+    bottom: 30px;
+    z-index: 9997;
+    display: table;
+    width: 100%;
     font-size: 80%;
+    background-color: #eeeeee;
+    opacity: 0.8;
+    height: 3em;
 }
 
 #message_pad {
   height: 100%;
-//  border-right: solid gray 1px;
 }
 
-footer div, progress {
+progress {
+    vertical-align: middle;
+    height: 50%;
+    margin: 10px 0 10px 0;
 }
 
-/*
-fieldset ul  {
-    list-style: none;
+.statusbar_cell {
+    display: table-cell;
+    border: solid gray 1px;
 }
-*/
 
 fieldset label {
     font-weight: bold;
@@ -201,3 +216,4 @@ transform:rotate(0deg)}
 transform:rotate(360deg)}
 
 }
+

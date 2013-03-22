@@ -12,30 +12,34 @@
     <script type="text/javascript" src="/static/js/migra.js"></script>
   </head>
   <body>
-        <header id="header"><h1>Migra ancestry mapping</h1>
-<!--        <form id="reset_form"><input type="button" value="Reset" /></form> -->
-        </header>
-        <section id="map_section"><div id="map_canvas"></div></section>
-        <section id="experimental" style="display: none;">
-        <form action="javascript:showMigrations();"><input type="submit" value="Show Migrations" /></form>
-        </section>
-        <footer id="footer" class="footer" style="display: table; width: 100%">
-            <div id="statusBar" style="display: table-row; width: 100%">
-                <div id="message_pad" style="display: table-cell; width: 50%">Ready.</div>
-                <progress id="progressBar" value="0" max="100" style="display: table-cell; width: 50%">&nbsp;</progress>
-                <div id="percentageCalc" style="display: table-cell; width: 5%;">&nbsp;</div> 
-                <div id="spinner" style="width: 100px; display: none">
-                    <div id="bowlG">
-                        <div id="bowl_ringG">
-                            <div class="ball_holderG">
-                                <div class="ballG">
+        <section id="map_section">
+            <header><h1>Migra ancestry mapping</h1></header>
+            <div id="map_canvas"></div>
+            <footer>
+                <div id="statusBar" style="display: table-row; width: 100%">
+                    <div id="message_pad" class="statusbar_cell" style="width: 50%">Ready.</div>
+                    <div class="statusbar_cell" style="width: 30%">
+    	        	    <progress id="progressBar" value="0" max="100" style="width: 100%; height: 100%">&nbsp;</progress>
+    		        </div>
+                    <div id="percentageCalc" class="statusbar_cell" style="width: 10%; display: none">&nbsp;</div>
+                    <div id="spinner" class="statusbar_cell" style="width: 10%;">
+                        <div id="bowlG">
+                            <div id="bowl_ringG">
+                                <div class="ball_holderG">
+                                    <div class="ballG">
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        </footer>
+            </footer>
+        </section>
+<!--
+        <section id="experimental" style="display: none;">
+        <form action="javascript:showMigrations();"><input type="submit" value="Show Migrations" /></form>
+        </section>
+-->
 
         <div id="overlay">
             <div id="upload_form_wrapper" class="dialog" style="display: none;" >
@@ -90,12 +94,6 @@
                                     <option value="6">4th great grandparents</option>
                                     <option value="7">5th great grandparents</option>
                                     <option value="8">6th great grandparents</option>
-                                    <option value="9">7th great grandparents</option>
-                                    <option value="10">8th great grandparents</option>
-                                    <option value="11">9th great grandparents</option>
-                                    <option value="12">10th great grandparents</option>
-                                    <option value="13">11th great grandparents</option>
-                                    <option value="14">12th great grandparents</option>
                                 </select>
                             </dd>
                         </dl>
@@ -103,9 +101,9 @@
                     </fieldset>
                     <p style="font-size: 75%">
                     The <q>focal individual</q> is the person whose ancestors you want to see. 
-                    Each level of ancestry can double the amount of processing time,
-                    though this effect is mitigated when Migra has already stored 
-                    locations in the GEDCOM.
+                    Each level of ancestry can roughly double the amount of processing time to
+                    map all the locations. Mapping can take a while because the google maps API
+                    throttles the number of requests a given computer can make.
                     </p>
                 </form>
             </div>
