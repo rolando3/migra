@@ -1,13 +1,4 @@
 /* migra.js */
-var map;
-var clusterer;
-var geocoder;
-var data = { people: [], addresses: [] };
-var overlays = { markers: [], polylines: [] };
-var locationStatus = { cache: 0, total: 0, geocoded: 0, error: 0 };
-var options = {};
-var spiderifier;
-var stat;
 
 //first, checks if it isn't implemented yet
 if (!String.prototype.format) {
@@ -37,28 +28,35 @@ function initialize()
         mapTypeId: google.maps.MapTypeId.ROADMAP
     };
 
-    stat = new MigraStatus();
-    stat.actionStart ("Initializing")
+    Window.data = { people: [], addresses: [] };
+    Window.overlays = { markers: [], polylines: [] };
+    Window.options = {};
+
+    Window.stat = new MigraStatus();
+    Window.stat.actionStart ("Initializing")
     //the map has a few goodies.
-    map = new google.maps.Map(document.getElementById('map_canvas'), myOptions);
-    clusterer = new MarkerClusterer ( map, [], { maxZoom: 10 } );
-    geocoder = new google.maps.Geocoder();
-    spiderifier = new OverlappingMarkerSpiderfier(map);
+    Window.map = new google.maps.Map(document.getElementById('map_canvas'), myOptions);
+    Window.clusterer = new MarkerClusterer ( Window.map, [], { maxZoom: 10 } );
+    Window.geocoder = new google.maps.Geocoder();
+    Window.spiderifier = new OverlappingMarkerSpiderfier(Window.map);
+    Window.mapper = new Mapper();
 
     //initialize all the map variables    
     clearMap();
     addEventListeners();
 
-    stat.actionEnd("Initialized");
+    Window.stat.actionEnd("Initialized");
     //show our upload form.
     $('#upload_form_wrapper').show();
 }
 
 function MigraStatus ()
 {
+    //Various status feedback functions
+    
     this.actionStart = function(desc)
     {
-        this.info(desc);
+        this.info(desc + "...");
         $('#spinner').show();
     }
     
@@ -78,13 +76,13 @@ function MigraStatus ()
     
     this.actionEnd = function(msg)
     {
-        this.info(msg);
+        this.info(msg + ".");
         $('#spinner').hide();
     }
     
     this.actionError = function(msg)
     {
-        this.error(msg);
+        this.error("Error: " + msg + ".");
         $('#spinner').hide();
     }
     
@@ -116,11 +114,13 @@ function Address ( placename, latlng )
     this.loc = latlng;
     this.people = [];
     
-    this.addPerson = function(person) {
+    this.addPerson = function(person) 
+    {
         this.people.push ( person );
     }
     
-    this.cache = function() {
+    this.cache = function() 
+    {
         action = "/cache"
         //Given an address, send an AJAX request to cache 
         //We don't even care if it works.
@@ -137,59 +137,87 @@ function Address ( placename, latlng )
         });
     }
     
-    this.draw = function () {
+    this.draw = function ()
+    {
         for (var i = 0; i < this.people.length; i++) {
             this.people[i].loc = this.loc;
             this.people[i].draw();
         }
     } 
     
-    this.find = function ( ) {
+    this.map = function ( )
+    {
     }
 }
 
-function findAddress(address) 
+function Mapper ( )
 {
-    if ( address.loc != null )
+    
+    this.locationStatus = { cache: 0, total: 0, geocoded: 0, error: 0 };
+
+    this.reset = function ()
     {
-        //We're already done.
-        address.draw();
-        locationStatus.cache ++;
-        progressFunctionLocations();
+        this.locationStatus.total =  Object.keys(Window.data.addresses).length;
+        this.locationStatus.geocoded = 0;
+        this.locationStatus.cache = 0;
+        this.locationStatus.error = 0;
     }
-    else
+    
+    this.__progressFunctionLocations = function() 
     {
-     	geocoder.geocode( { 'address': address.placename }, function ( results, status ) {
-       		if (status == google.maps.GeocoderStatus.OK ) 
-       		{
-    		    stat.info ( "Geocoded {0}.".format(address.placename) );
-                address.loc = results[0].geometry.location;
-                address.draw();
-                address.cache();
-                locationStatus.geocoded ++;
-       		}
-       		else if (status == google.maps.GeocoderStatus.OVER_QUERY_LIMIT) 
-       		{
-                setTimeout(function() { findAddress(address); }, Math.random() * 10000 );
-    		}
-    		else
-    		{
-    		    stat.info ( "Error finding {0}: {1}.".format ( address.placename , status ) );
-    		    locationStatus.error ++;
-    		}
-    		progressFunctionLocations();
-     	} );
+       if ( this.locationStatus.geocoded + this.locationStatus.cache + this.locationStatus.error >= this.locationStatus.total )
+       {
+           Window.stat.actionEnd();
+           Window.stat.info ( "Mapped {0} individuals at {4} distinct locations ({1} geocoded and cached, {2} retrieved from cache, {3} errors).".format ( Object.keys(Window.data.people).length, this.locationStatus.geocoded, this.locationStatus.cache, this.locationStatus.error, this.locationStatus.total ) );
+       	} else {
+           	Window.stat.actionUpdate(this.locationStatus.geocoded + this.locationStatus.error, this.locationStatus.total - this.locationStatus.cache);
+       	}
+    }
+
+    
+    this.map = function (address) 
+    {
+        if ( address.loc != null )
+        {
+            //We're already done.
+            address.draw();
+            this.locationStatus.cache ++;
+            this.progressFunctionLocations();
+        }
+        else
+        {
+         	Window.geocoder.geocode( { 'address': address.placename }, function ( results, status ) {
+           		if (status == google.maps.GeocoderStatus.OK ) 
+           		{
+        		    Window.stat.info ( "Geocoded {0}.".format(address.placename) );
+                    address.loc = results[0].geometry.location;
+                    address.draw();
+                    address.cache();
+                    this.locationStatus.geocoded ++;
+           		}
+           		else if (status == google.maps.GeocoderStatus.OVER_QUERY_LIMIT) 
+           		{
+                    setTimeout(function() { mapper.map(address); }, Math.random() * 10000 );
+        		}
+        		else
+        		{
+        		    Window.stat.info ( "Error finding {0}: {1}.".format ( address.placename , status ) );
+        		    this.locationStatus.error ++;
+        		}
+        		this.progressFunctionLocations();
+         	} );
+        }
     }
 }
 
 function AncestryLink ( parentID, childID )
 {
     //A link between parent and child
-    this.parent = data.people[parentID];
-    data.people[parentID].addChildLink(this);
+    this.parent = Window.data.people[parentID];
+    Window.data.people[parentID].addChildLink(this);
     
-    this.child = data.people[childID];
-    data.people[childID].addParentLink(this);
+    this.child = Window.data.people[childID];
+    Window.data.people[childID].addParentLink(this);
     
     this.polyLine = null;
     
@@ -197,7 +225,7 @@ function AncestryLink ( parentID, childID )
        	//Go through the legs
        	//Look up the coordinates
     
-        var maxWeight = options["depth"];
+        var maxWeight = Window.options["depth"];
     
     	if ( this.parent.loc === undefined || this.child.loc === undefined ) return;
     
@@ -213,12 +241,12 @@ function AncestryLink ( parentID, childID )
           geodesic: true,
           strokeOpacity: opacity,
           strokeColor: strokecolor,
-          map: map,
+          map: Window.map,
           link: this
         };
     
     	this.polyLine = new google.maps.Polyline(plOptions);
-    	overlays.polylines.push ( this.polyLine );
+    	Window.overlays.polylines.push ( this.polyLine );
     
         //On click show path from this person to the focal individual
         google.maps.event.addListener(this.polyLine, 'click', function()
@@ -250,7 +278,7 @@ function Person ( jsonPerson )
         this.placename = null;
     }
     
-    data.people[this.id] = this;
+    Window.data.people[this.id] = this;
     
     this.sexratio = 0;
     this.parentLinks = [];
@@ -305,7 +333,7 @@ function Person ( jsonPerson )
             geodesic: true,
             strokeColor: "orange",
             weight: 4,
-            map: map,
+            map: Window.map,
             points: tempMarkers
 //            spider: s
         };
@@ -347,7 +375,7 @@ function Person ( jsonPerson )
     	
     	var markerOpts = {
     		position: this.loc, 
-    		map: map, 
+    		map: Window.map, 
     		icon: new google.maps.MarkerImage("http://chart.apis.google.com/chart?chst=d_map_pin_letter&chld=" + markerCharacter + "|" + pinColor),
     		title: "{0} ({1}; {2}; {3})".format( this.name , getRelationshipDesc(this) , this.placename , this.date, this.sexratio ),
     		person: this
@@ -360,9 +388,9 @@ function Person ( jsonPerson )
     this.draw = function () {
         m = this.addMarker ();
         this.marker = m;
-        overlays.markers.push ( m );
-    	clusterer.addMarkers ( [ m ] );
-    	spiderifier.addMarker ( m );
+        Window.overlays.markers.push ( m );
+    	Window.clusterer.addMarkers ( [ m ] );
+    	Window.spiderifier.addMarker ( m );
 
         //now we see if we have locations on both ends of the given link.
         for (var j = 0; j < this.childLinks.length; j++) {
@@ -385,26 +413,21 @@ function Person ( jsonPerson )
 //reset the map.
 function clearMap() 
 {
-    for (var i = 0; i < overlays.markers.length; i++ ) 
+    for (var i = 0; i < Window.overlays.markers.length; i++ ) 
     {
-        overlays.markers[i].setMap(null);
+        Window.overlays.markers[i].setMap(null);
     }
     
-    for (var i = 0; i < overlays.polylines.length; i++ ) 
+    for (var i = 0; i < Window.overlays.polylines.length; i++ ) 
     {
-        overlays.polylines[i].setMap(null);
+        Window.overlays.polylines[i].setMap(null);
     }
     
-    clusterer.clearMarkers();
+    Window.clusterer.clearMarkers();
     
-    data.people = [];
-    data.addresses = [];
+    Window.data.people = [];
+    Window.data.addresses = [];
     
-    locationStatus.total = 0;
-    locationStatus.geocoded = 0;
-    locationStatus.cache = 0;
-    locationStatus.error = 0;
-      
 }
 
 function addEventListeners() 
@@ -412,17 +435,17 @@ function addEventListeners()
     
     //When our forms are submitted we want to process their forms. When those are done we want to do things.
     $('#upload_form').submit(function (e) {
-        stat.actionStart("Uploading data");
+        Window.stat.actionStart("Uploading data");
         processForm(this, e,function (result) {
             buildPeopleList(result);
-            stat.actionEnd("List of people built");
+            Window.stat.actionEnd("List of people built");
         });
     });
     
     $('#walk_form').submit(function (e) {
-        stat.actionStart("Walking the genealogy");
+        Window.stat.actionStart("Walking the genealogy");
         processForm(this, e,function (result) {
-            stat.actionStart("Genealogy walked. Drawing map");
+            Window.stat.actionStart("Genealogy walked. Drawing map");
             drawMap(result);
         });
     });
@@ -457,8 +480,8 @@ function processForm(form, e, successfunction )
           //The XMLHTTPRequest sends notifications as a file is uploaded. That's nice.
           myXhr = $.ajaxSettings.xhr();
           if (myXhr.upload) {
-            myXhr.upload.addEventListener('progress', function(evt) { stat.actionUpdate(evt.loaded,evt.total); }, false);
-            myXhr.upload.addEventListener('load', function(evt) { stat.actionStart("Server processing data"); } );
+            myXhr.upload.addEventListener('progress', function(evt) { Window.stat.actionUpdate(evt.loaded,evt.total); }, false);
+            myXhr.upload.addEventListener('load', function(evt) { Window.stat.actionStart("Server processing data"); } );
           }
           return myXhr;
         },
@@ -469,7 +492,7 @@ function processForm(form, e, successfunction )
         dataType: 'json',
         success: successfunction,
         error: function( xhr, httpStatus, msg ) { 
-            stat.error ( "Error in AJAX request: ({0}): {1}.".format( httpStatus , msg ) );
+            Window.stat.error ( "Error in AJAX request: ({0}): {1}.".format( httpStatus , msg ) );
         }
     });
 }
@@ -479,14 +502,14 @@ function buildPeopleList(httpData)
     //Given the Json returned from our "p" action, build the list of people around whom we can build our map.
     var value = "";
     var i = 0;
-    options = httpData.parameters;
+    Window.options = httpData.parameters;
     //$('#sid').val(httpData.sid);
     if ( httpData.people.length > 0 )
     {
         //We have found at least one match.
         $.each(httpData.people, function(key, person) {
             i++;
-            stat.actionUpdate(i,httpData.people.length);
+            Window.stat.actionUpdate(i,httpData.people.length);
             value = "{0} {1}".format( person.name, person.birth ? " (b. " + person.birth.date + ")" : "" );
             $('#i_select')
                  .append($('<option>', { value : person.id,
@@ -496,71 +519,65 @@ function buildPeopleList(httpData)
         });
         $('#upload_form_wrapper').hide();
         $('#walk_form_wrapper').show();
-        stat.actionEnd();
+        Window.stat.actionEnd();
     }
     else
     {
-        stat.actionError( "No entries found matching \"{0}.\"".format ( options["query"] ) );
+        Window.stat.actionError( "No entries found matching \"{0}.\"".format ( Window.options["query"] ) );
     }
 }
 
 function drawMap ( httpData ) 
 {
     var addressNames;
-    options = httpData.parameters;
+    Window.options = httpData.parameters;
     clearMap();
 
+    //Loop through the people. add them to the list. This also creates a list of unique addresses.
     for (var i = 0; i < httpData.people.length; i++) 
     {
         new Person(httpData.people[i]);
     }
     
+    //all of the new people create a list of unique addresses in data addresses. Here we get their names
     addressNames = Object.keys(data.addresses);
     
+    //Now loop through our links array and add those (
     for ( i = 0; i < httpData.links.length; i++ ) 
     {
         //note that parent, child here are IDs/Pointers
         new AncestryLink ( httpData.links[i].parent, httpData.links[i].child );
     }
 
-    locationStatus.total = addressNames.length;
+    Window.stat.info ( "Ancestry parsed for {0}. {1} people retrieved. {2} links retrieved. {3} distinct addresses retrieved.".format ( httpData.people[0].name,  Object.keys(Window.data.people).length, httpData.links.length, addressNames.length ) );
     
-    
-    stat.info ( "Ancestry parsed for {0}. {1} people retrieved. {2} links retrieved. {3} distinct addresses retrieved.".format ( httpData.people[0].name,  Object.keys(data.people).length, httpData.links.length, addressNames.length ) );
-    
+    mapper.reset();
+    //Plot each unique address on the map
     for ( i = 0; i < addressNames.length; i++)
     {
-        findAddress(data.addresses[addressNames[i]]);
+        //This really should be a function on the address object but I had a little trouble with that.
+        mapper.map(Window.data.addresses[addressNames[i]]);
     }
     
+    //Addresses are being mapped. Take our form away.
     $('#walk_form_wrapper').hide();
     $('#overlay').hide();
 
-}
-
-
-function progressFunctionLocations() {
-	stat.actionUpdate(locationStatus.geocoded + locationStatus.error,locationStatus.total - locationStatus.cache);
-    if ( locationStatus.geocoded + locationStatus.cache + locationStatus.error >= locationStatus.total )
-    {
-        stat.actionEnd();
-        stat.info ( "Mapped {0} individuals at {4} distinct locations ({1} geocoded and cached, {2} retrieved from cache, {3} errors).".format ( Object.keys(data.people).length, locationStatus.geocoded, locationStatus.cache, locationStatus.error, locationStatus.total ) );
-	}
 }
 
 function showMigrations ( )
 {
     var earliestDate = 3000;
     var latestDate = -3000;
-    var keys = Object.keys(data.people);
+    var keys = Object.keys(Window.data.people);
 
     //The idea with this function is that we will progress through the people in our people 
     for ( var i = 0; i < keys.length ; i++ )
     {
         key = keys[i];
-        if ( data.people[key].date != null ) {
-            if ( data.people[key].date < earliestDate ) earliestDate = data.people[key].date;
-            if ( data.people[key].date > latestDate ) latestDate = data.people[key].date;
+        if ( Window.data.people[key].date != null ) {
+            if ( Window.data.people[key].date < earliestDate ) earliestDate = Window.data.people[key].date;
+            if ( Window.data.people[key].date > latestDate ) latestDate = Window.data.people[key].date;
         }
     }
 
@@ -571,33 +588,33 @@ function showMigrations ( )
 function showAllOverlays(toggle)
 {
     if ( ! toggle ) {
-        clusterer.clearMarkers();
-        spiderifier.clearMarkers();
+        Window.clusterer.clearMarkers();
+        Window.spiderifier.clearMarkers();
     }
     
-    for ( var i = 0; i < overlays.markers.length; i ++ ) 
+    for ( var i = 0; i < Window.overlays.markers.length; i ++ ) 
     {
-        overlays.markers[i].setVisible(toggle);
+        Window.overlays.markers[i].setVisible(toggle);
     }
     
     for ( var i = 0; i < overlays.polylines.length; i ++ ) 
     {
-        overlays.polylines[i].setVisible(toggle);
+        Window.overlays.polylines[i].setVisible(toggle);
     }
     
     if ( toggle ) 
     {
-        clusterer.addMarkers ( overlays.markers );
-        for ( var i = 0; i < overlays.markers.length; i ++ ) 
+        Window.clusterer.addMarkers ( Window.overlays.markers );
+        for ( var i = 0; i < Window.overlays.markers.length; i ++ ) 
         {
-            spiderifier.addMarker ( overlays.markers[i] );
+            Window.spiderifier.addMarker ( Window.overlays.markers[i] );
         }
     }
 }
 
 function showMigrationMarkers ( startRange, endRange )
 {
-    var peopleKeys = Object.keys(data.people);
+    var peopleKeys = Object.keys(Window.data.people);
     var p;
     
     if ( startRange >= endRange ) 
@@ -606,17 +623,17 @@ function showMigrationMarkers ( startRange, endRange )
         return;
     }
     
-    stat.info ( startRange + " - " + ( startRange + 30 ) );
+    Window.stat.info ( startRange + " - " + ( startRange + 30 ) );
     
     for ( i = 0; i < peopleKeys.length; i++ )
     {
-        p = data.people[peopleKeys[i]];
+        p = Window.data.people[peopleKeys[i]];
         if ( p.marker ) 
         {
             b = ( p.date >= startRange && p.date < ( startRange + 30 ) );
             if ( p.date === undefined || p.date == null ) b = false;
             
-            if ( b ) p.marker.setMap(map);
+            if ( b ) p.marker.setMap(Window.map);
             p.marker.setVisible ( b );
         }
     }
@@ -629,7 +646,7 @@ function getStrokeColor ( link ) {
     var colors = { M: 0, F: 0 }
     
     for ( i = 1; i < link.parent.path.length; i ++ ) {
-        colors[data.people[link.parent.path[i]].sex] += ( 1 / Math.pow(2,i) ); 
+        colors[Window.data.people[link.parent.path[i]].sex] += ( 1 / Math.pow(2,i) ); 
     }
     colors[link.parent.sex] += ( 1 / Math.pow(2,link.parent.path.length) );
 
