@@ -65,7 +65,6 @@ class AmazonS3FileStorage:
     @classmethod
     def test_key(cls,k=None):
         k = cls.__key(k)
-        print k.get_metadata('time')
         return k
 
     @classmethod
@@ -91,11 +90,13 @@ class AmazonS3FileStorage:
         from calendar import timegm
         b = cls.__bucket()
         result = []
+        now = timegm(gmtime())
         for k in b.list():
-            if k.get_metadata('time') is None:
-                result.append ( ( k.key, None ) )
+            key = b.get_key(k)
+            if key.get_metadata('time') is None:
+                result.append ( ( key.key, None ) )
             else:
-                result.append ( ( k.key, k.get_metadata('time') - timegm(gmtime()) ) )
+                result.append ( ( key.key, now - int( key.get_metadata('time'))))
             
         return result
 
