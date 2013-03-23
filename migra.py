@@ -216,7 +216,7 @@ class MigraGeocoder:
         """ Look on our database for a stored geocode. If none, return None """
         if placename is None: return None
         
-        sql = 'SELECT lat, lng FROM geocode WHERE placename = %s'
+        sql = 'SELECT lat, lng FROM geocode WHERE placename = %s;'
         try:
             cur = self.__con.cursor()
             cur.execute(sql,[placename])

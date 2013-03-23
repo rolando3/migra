@@ -76,7 +76,7 @@ function MigraStatus ()
     
     this.actionEnd = function(msg)
     {
-        this.info(msg + ".");
+        if ( typeof(msg) != "undefined" ) this.info(msg + ".");
         $('#spinner').hide();
     }
     
@@ -112,6 +112,15 @@ function Address ( placename, latlng )
     //Address class. Placename coupled with a google maps LatLng object
     this.placename = placename;
     this.loc = latlng;
+    
+/*
+    if ( latlng != null ) {
+        console.log ( "New address {0} ({1},{2})".format(placename,latlng.lat(),latlng.lng()));
+    } else {
+        console.log ( "New address {0} (not yet cached)" );
+    }
+*/
+        
     this.people = [];
     
     this.addPerson = function(person) 
@@ -126,7 +135,7 @@ function Address ( placename, latlng )
         //We don't even care if it works.
         $.ajax({
             type: 'post',
-            data: { a: 'c', data: JSON.stringify({ name: this.placename, lat: this.loc.lat(), lng: this.loc.lng() } ) },
+            data: { data: JSON.stringify({ name: this.placename, lat: this.loc.lat(), lng: this.loc.lng() } ) },
             url: action,
             success: function ( results ) {
                 //
@@ -174,7 +183,6 @@ function Mapper ( )
        	}
     }
 
-    
     this.map = function (address) 
     {
         if ( address.loc != null )
@@ -182,10 +190,11 @@ function Mapper ( )
             //We're already done.
             address.draw();
             this.locationStatus.cache ++;
-            this.progressFunctionLocations();
+            this.__progressFunctionLocations();
         }
         else
         {
+            m = this;
          	Window.geocoder.geocode( { 'address': address.placename }, function ( results, status ) {
            		if (status == google.maps.GeocoderStatus.OK ) 
            		{
@@ -193,18 +202,18 @@ function Mapper ( )
                     address.loc = results[0].geometry.location;
                     address.draw();
                     address.cache();
-                    this.locationStatus.geocoded ++;
+                    Window.mapper.locationStatus.geocoded ++;
            		}
            		else if (status == google.maps.GeocoderStatus.OVER_QUERY_LIMIT) 
            		{
-                    setTimeout(function() { mapper.map(address); }, Math.random() * 10000 );
+                    setTimeout(function() { Window.mapper.map(address); }, Math.random() * 10000 );
         		}
         		else
         		{
-        		    Window.stat.info ( "Error finding {0}: {1}.".format ( address.placename , status ) );
-        		    this.locationStatus.error ++;
+           		    Window.stat.info ( "Error finding {0}: {1}.".format ( address.placename , status ) );
+        		    Window.mapper.locationStatus.error ++;
         		}
-        		this.progressFunctionLocations();
+        		Window.mapper.__progressFunctionLocations();
          	} );
         }
     }
@@ -287,13 +296,13 @@ function Person ( jsonPerson )
     if ( ! this.placename ) { 
         this.latlng = null;
     } else {
-        if ( data.addresses[this.placename] === undefined )
+        if ( Window.data.addresses[this.placename] === undefined )
         {
             this.latlng = ( jsonPerson["location"]["latlng"] == null ) ? null : new google.maps.LatLng(jsonPerson.location.latlng.lat, jsonPerson.location.latlng.lng);
-            data.addresses[this.placename] = new Address ( this.placename, this.latlng );
+            Window.data.addresses[this.placename] = new Address ( this.placename, this.latlng );
         }
         
-        data.addresses[this.placename].addPerson(this);
+        Window.data.addresses[this.placename].addPerson(this);
     }
 
     //add a link to this person.    
@@ -453,6 +462,10 @@ function addEventListeners()
     $('#reset_form').submit(function (e) {
         clearMap();
     });
+    
+    $('.pseudobutton').click(function(e) {
+        window.alert ( this.name );
+    });
         
 
 }
@@ -540,7 +553,7 @@ function drawMap ( httpData )
     }
     
     //all of the new people create a list of unique addresses in data addresses. Here we get their names
-    addressNames = Object.keys(data.addresses);
+    addressNames = Object.keys(Window.data.addresses);
     
     //Now loop through our links array and add those (
     for ( i = 0; i < httpData.links.length; i++ ) 
@@ -551,12 +564,12 @@ function drawMap ( httpData )
 
     Window.stat.info ( "Ancestry parsed for {0}. {1} people retrieved. {2} links retrieved. {3} distinct addresses retrieved.".format ( httpData.people[0].name,  Object.keys(Window.data.people).length, httpData.links.length, addressNames.length ) );
     
-    mapper.reset();
+    Window.mapper.reset();
     //Plot each unique address on the map
     for ( i = 0; i < addressNames.length; i++)
     {
         //This really should be a function on the address object but I had a little trouble with that.
-        mapper.map(Window.data.addresses[addressNames[i]]);
+        Window.mapper.map(Window.data.addresses[addressNames[i]]);
     }
     
     //Addresses are being mapped. Take our form away.
@@ -597,7 +610,7 @@ function showAllOverlays(toggle)
         Window.overlays.markers[i].setVisible(toggle);
     }
     
-    for ( var i = 0; i < overlays.polylines.length; i ++ ) 
+    for ( var i = 0; i < Window.overlays.polylines.length; i ++ ) 
     {
         Window.overlays.polylines[i].setVisible(toggle);
     }
@@ -659,8 +672,6 @@ function getStrokeColor ( link ) {
     greenfactor = "0".repeat(2-greenfactor.length) + greenfactor;
     
     strokeColor = "#{0}{1}{2}".format ( redfactor,greenfactor,bluefactor );
-    
-//    console.log ( "{0}: {1}".format(link.parent.name,strokeColor));
     
     return strokeColor
     
