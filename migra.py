@@ -119,13 +119,13 @@ class MigraLocation:
         self.__lng = lng
         
     def name(self):
-        return self.__name;
+        return self.__name
         
     def lat(self):
-        return self.__lat;
+        return self.__lat
     
     def lng(self):
-        return self.__lng;
+        return self.__lng
 
 class MigraHelper:
     def __init__(self):
@@ -200,7 +200,9 @@ class MigraGeocoder:
         
         global geocoder
         geocoder = self
-        
+        self.__connect()
+
+    def __connect ( self ):
         try:
             import os
             pieces = os.environ.get('DATABASE_URL','').split(":")
@@ -211,10 +213,13 @@ class MigraGeocoder:
         except:
             import traceback
             sys.stderr.write ( 'Cannot connect to database (%s:%s/%s): %s.' % ( host, port, dbname, ''.join(traceback.format_exception( *sys.exc_info())[-2:]).strip().replace('\n',': ') ) )
-                    
+
     def geocode ( self, placename ):
         """ Look on our database for a stored geocode. If none, return None """
         if placename is None: return None
+        
+        if self.__con.closed == 1:
+            self.__connect() 
         
         sql = 'SELECT lat, lng FROM geocode WHERE placename = %s;'
         try:
@@ -231,6 +236,10 @@ class MigraGeocoder:
         return None
         
     def cache ( self, location ):
+    
+        if self.__con.closed == 1:
+            self.__connect() 
+
         """ Given a location name, store it in the database. Result is irrelevant """
         sql = 'INSERT INTO geocode ( placename, lat, lng ) VALUES ( %s, %s, %s );'
         try:
@@ -246,6 +255,9 @@ class MigraGeocoder:
         return {'status': { 'message': 'OK', 'code': 0 } }
 
     def countcachedaddresses(self):
+        if self.__con.closed == 1:
+            self.__connect() 
+            
         sql = 'SELECT count(*) FROM geocode;'
         cur = self.__con.cursor()
         cur.execute(sql)

@@ -19,6 +19,8 @@ if (!String.prototype.repeat) {
     }
 }
 
+MigraForms = { View: 1, UploadForm: 2, WalkForm: 3 };
+
 function initialize() 
 {
     //initialize our stuff: the map, its constituent thingies
@@ -46,8 +48,7 @@ function initialize()
     addEventListeners();
 
     Window.stat.actionEnd("Initialized");
-    //show our upload form.
-    $('#upload_form_wrapper').show();
+    showForm(MigraForms.UploadForm);
 }
 
 function MigraStatus ()
@@ -463,11 +464,44 @@ function addEventListeners()
         clearMap();
     });
     
-    $('.pseudobutton').click(function(e) {
-        window.alert ( this.name );
+    $('#btn_restart').click(function(e) {
+        //Might need to clean up data
+        
+        showForm(MigraForms.UploadForm);
     });
         
+    $('#btn_choose').click(function(e) {
+        showForm(MigraForms.WalkForm);
+    });
 
+}
+
+function showForm ( n )
+{
+    //there are three
+    if ( n == MigraForms.View ) 
+    {
+        $('#overlay').hide();
+        $('#walk_form_wrapper').hide();
+        $('#upload_form_wrapper').hide();
+    } 
+    else if ( n == MigraForms.UploadForm ) 
+    {
+        $('#overlay').show();
+        $('#walk_form_wrapper').hide();
+        $('#upload_form_wrapper').show();
+    }
+    else if ( n == MigraForms.WalkForm )
+    {
+        $('#overlay').show();
+        $('#walk_form_wrapper').show();
+        $('#upload_form_wrapper').hide();
+    }
+    else
+    {
+        //This is an error!
+        window.alert ( "What is this bullshit? " + n )
+    }
 }
 
 function processForm(form, e, successfunction )
@@ -530,8 +564,7 @@ function buildPeopleList(httpData)
 
                  )); 
         });
-        $('#upload_form_wrapper').hide();
-        $('#walk_form_wrapper').show();
+        showForm(MigraForms.WalkForm);
         Window.stat.actionEnd();
     }
     else
@@ -573,8 +606,7 @@ function drawMap ( httpData )
     }
     
     //Addresses are being mapped. Take our form away.
-    $('#walk_form_wrapper').hide();
-    $('#overlay').hide();
+    showForm(MigraForms.View);
 
 }
 
