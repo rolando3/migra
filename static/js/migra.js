@@ -433,9 +433,10 @@ function clearMap()
         Window.overlays.polylines[i].setMap(null);
     }
     
+    Window.data = { people: [], addresses: [] };
+    Window.overlays = { markers: [], polylines: [] };
+    
     Window.clusterer.clearMarkers();
-    Window.data.people = [];
-    Window.data.addresses = [];
     
 }
 

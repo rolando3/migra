@@ -22,7 +22,7 @@
 #
 # To contact the author, see http://faculty.cs.byu.edu/~zappala
 
-__all__ = ["Gedcom", "Element", "GedcomParseError", "GedcomIndividual" ]
+__all__ = ["Gedcom", "Element", "GedcomParseError"]
 
 # Global imports
 import string
@@ -704,54 +704,3 @@ class Element(object):
             result += ' ' + self.value()
         return result
         
-        
-class GedcomIndividual(object):
-    '''this is a class that is useful for pickling, etc.'''
-    def __init__(self,e):
-        if not e.individual():
-            raise ValueError, ("the element passed to GedcomIndividual should be an individual")
-        self.__id = e.pointer()
-        self.__name = e.full_name()
-        self.__birth = e.birth()
-        self.__death = e.death()
-        self.__sex = e.sex()
-        self.__marriages = [ { 'spouse': m['spouse'].pointer() if m['spouse'] else None,
-                               'date': m['date'],
-                               'place': m['place']
-                             } for m in e.marriages() ]
-        parents = e.parents()
-        self.__father = parents[0].pointer() if parents[0] is not None else None
-        self.__mother = parents[1].pointer() if parents[1] is not None else None
-        self.__offspring = [ o.pointer() if o is not None else None for o in e.offspring() ]
-        
-    def id(self):
-        return self.__id
-    
-    def name(self):
-        return self.__name
-        
-    def birth(self):
-        return { 'date': self.__birth[0], 'place': self.__birth[1] } if self.__birth is not None else None
-    
-    def death(self):
-        return { 'date': self.__death[0], 'place': self.__death[1] } if self.__death is not None else None
-
-        
-    def marriages(self):
-        return self.__marriages
-        
-    def sex(self):
-        return self.__sex
-        
-    def parents(self):
-        return { 'father': self.__father, 'mother': self.__mother }
-        
-    def offspring(self):
-        return self.__offspring
-    
-class GedcomFamily(object):
-    '''this is a class that is useful for pickling, etc.'''
-    def __init__(self,e):
-        return
-
-

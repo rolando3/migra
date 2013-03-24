@@ -36,7 +36,7 @@ def upload():
     file = request.files['gedcom']
     
     if file and __allowed_file(file.filename):
-        all = migra.processGedcom(file)
+        all = migra.upload(file)
         k = session.get('key',None)
         session['key'] = fileStorage().store_file(all,k)
         return jsonresponse({'count': len(all.keys())})

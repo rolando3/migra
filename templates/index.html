@@ -16,11 +16,11 @@
         <section id="map_section">
             <div id="header"><h1>Migra ancestry mapping</h1></div>
             <div id="map_canvas"></div>
+            <div id="buttons">
+                <a id="btn_restart" href="#" class="pseudobutton">Upload a new file</a>
+                <a id="btn_choose" href="#" class="pseudobutton">Choose a new focus</a>
+            </div>
             <div id="footer">
-                <div id="buttons">
-                    <a id="btn_restart" href="#" class="pseudobutton">Upload a new file</a>
-                    <a id="btn_choose" href="#" class="pseudobutton">Choose a new focus</a>
-                </div>
                 <div id="statusBar" style="display: table-row; width: 100%">
                     <div id="message_pad" class="statusbar_cell" style="width: 50%">Ready.</div>
                     <div class="statusbar_cell" style="width: 30%">
@@ -47,6 +47,7 @@
 -->
 
         <div id="overlay">
+            <div id="header"><h1>Migra ancestry mapping</h1></div>
             <div id="upload_form_wrapper" class="dialog" style="display: none;" >
                  <form id="upload_form" enctype="multipart/form-data" action="/upload" >
                      <fieldset>

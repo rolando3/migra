@@ -63,6 +63,51 @@ class MigraWalker:
                         self.__add_link(parent,person)
                         self.__walk_parents(parent, l)
 
+        
+class GedcomIndividual(object):
+    '''this is a class that is useful for pickling, etc.'''
+    def __init__(self,e):
+        if not e.individual():
+            raise ValueError, ("the element passed to GedcomIndividual should be an individual")
+        self.__id = e.pointer()
+        self.__name = e.full_name()
+        self.__birth = e.birth()
+        self.__death = e.death()
+        self.__sex = e.sex()
+        self.__marriages = [ { 'spouse': m['spouse'].pointer() if m['spouse'] else None,
+                               'date': m['date'],
+                               'place': m['place']
+                             } for m in e.marriages() ]
+        parents = e.parents()
+        self.__father = parents[0].pointer() if parents[0] is not None else None
+        self.__mother = parents[1].pointer() if parents[1] is not None else None
+        self.__offspring = [ o.pointer() if o is not None else None for o in e.offspring() ]
+        
+    def id(self):
+        return self.__id
+    
+    def name(self):
+        return self.__name
+        
+    def birth(self):
+        return { 'date': self.__birth[0], 'place': self.__birth[1] } if self.__birth is not None else None
+    
+    def death(self):
+        return { 'date': self.__death[0], 'place': self.__death[1] } if self.__death is not None else None
+
+        
+    def marriages(self):
+        return self.__marriages
+        
+    def sex(self):
+        return self.__sex
+        
+    def parents(self):
+        return { 'father': self.__father, 'mother': self.__mother }
+        
+    def offspring(self):
+        return self.__offspring
+
 class MigraPerson (GedcomIndividual):
     def __init__(self,e,l=0):
         #given an element, create a person object
@@ -267,7 +312,7 @@ class Migra:
     def __init__(self):
         MigraGeocoder()
 
-    def processGedcom ( self, file ):
+    def upload ( self, file ):
         #the calling function will have gotten the file from the web server and done something with it.
         #based upon its framework it probably will have saved the file, but who knows? what we need to do:
         #turn the file into a Gedcom object and then return a reference to it and a reference to the
@@ -297,5 +342,5 @@ class Migra:
         
     def cache ( self, parms ):
         o = json.loads(parms)
-        return MigraGeocoder().cache ( MigraLocation(o['name'],o['lat'],o['lng']) )
+        return geocoder.cache ( MigraLocation(o['name'],o['lat'],o['lng']) )
 
