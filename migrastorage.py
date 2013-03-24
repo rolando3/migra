@@ -10,7 +10,7 @@ def fileStorage():
 
 class LocalFileStorage:
     @classmethod
-    def store_file(cls,d):
+    def store_file(cls,d,k):
         """ Given a dict of all of the people in our gedcom, store it somewhere, and then pass back an 
             identifier that will make it easy to find on the second pass."""
         from tempfile import NamedTemporaryFile
@@ -68,8 +68,8 @@ class AmazonS3FileStorage:
         return k
 
     @classmethod
-    def store_file(cls,d):
-        awsKey = cls.__key()
+    def store_file(cls,d,k=None):
+        awsKey = cls.__key(k)
         awsKey.set_contents_from_string(json.dumps(d,indent=4,cls=MigraPersonEncoder))
 
         return awsKey.key

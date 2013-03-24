@@ -17,7 +17,7 @@
             <div id="header"><h1>Migra ancestry mapping</h1></div>
             <div id="map_canvas"></div>
             <div id="footer">
-                <div id="buttons" style="display: none">
+                <div id="buttons">
                     <a id="btn_restart" href="#" class="pseudobutton">Upload a new file</a>
                     <a id="btn_choose" href="#" class="pseudobutton">Choose a new focus</a>
                 </div>
@@ -56,10 +56,6 @@
                              <dd>
                                  <input type="file" required name="gedcom" id="gedcom" />
                              </dd>
-                             <dt><label for="q_input" id="q_label" >Search</label></dt>
-                             <dd>
-                                 <input name="q" id="q_input" placeholder="Search term" />
-                             </dd>
                          </dl>
                          <input type="submit" />
                      </fieldset>
@@ -68,6 +64,24 @@
                      Your online genealogy site or desktop program should be 
                      capable of generating GEDCOM files. These files can get 
                      quite big, and larger files increase processing time.
+                     </p>
+                 </form>
+            </div>
+            <div id="filter_form_wrapper" class="dialog" style="display: none;" >
+                 <form id="filter_form" action="/filter" >
+                     <fieldset>
+                         <legend>Filter the target file</legend>
+                         <dl class="formfields">
+                             <dt><label for="q_input" id="q_label" >Search</label></dt>
+                             <dd>
+                                 <input name="q" id="q_input" placeholder="Search term" />
+                             </dd>
+                         </dl>
+                         <input type="submit" />
+                     </fieldset>
+                     <p style="font-size: 75%">
+                     To map you will need to find a <q>focal</q> individual in your Gedcom.
+                     Search for their name here.
                      </p>
                  </form>
             </div>

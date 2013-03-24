@@ -30,9 +30,17 @@ html, body {
     width: 100%;
 }
 
+#buttons {
+    margin: 0 0 0.5em 0;
+    padding: 0.5em 0 0.5em 0;
+}
+
 .pseudobutton {
+//    margin: 0.5em;
+    color: black;
     padding: 0.5em;
-    border: solid #888888 1px;
+    background-color: #9966ff;
+    border: solid #ff7700 2px;
 }
 
 #map_canvas { 
@@ -75,14 +83,15 @@ fieldset label {
 .dialog {
     position: relative;
     width: 500px;
-    margin: 10% auto 0px auto   ;
+    margin: 10% auto 0px auto;
     padding: 25px;
-    background: #9966ff;
     -webkit-border-radius: 25px;
     -moz-border-radius: 25px;
     border-radius: 25px;
     box-shadow: 0 0 25px #d0d0d0;
-    opacity: 0.8;
+    background-color: #9966ff;
+    opacity: 1 !important;
+    z-index: 5;
 }
 
 .dialog fieldset {
@@ -107,13 +116,14 @@ fieldset label {
 #overlay {
     display: block;
     position: fixed;
-    z-index: 9999;
+    z-index: 9998;
     left: 0;
     top: 0;
     width: 100%;
     min-height: 100% !important;
     height: 100% !important;
     max-height: 100% !important;
+    background-color:rgba(0, 0, 0, 0.5);
 }
 
 #spinner{

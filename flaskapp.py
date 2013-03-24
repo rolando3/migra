@@ -33,22 +33,26 @@ def index():
 @app.route('/upload',methods=['POST'])
 def upload():
     """ Get the file and the search term from the upload, turn it into a gedcom, do something with this """
-    query = request.form['q']
     file = request.files['gedcom']
     
-    #uploads not permitted in Heroku. Need to send this over to amazon. For now this will have to do.
     if file and __allowed_file(file.filename):
-        ( fullDict, filteredList ) = migra.processGedcom(file,query)
-        session['key'] = fileStorage().store_file(fullDict)
-        return jsonresponse({'people':filteredList,'parameters':{'query':query}})
+        all = migra.processGedcom(file)
+        k = session.get('key',None)
+        session['key'] = fileStorage().store_file(all,k)
+        return jsonresponse({'count': len(all.keys())})
     else:
         raise MigraError, ('File not allowed')
-        
+
+@app.route('/filter',methods=['GET','POST'])
+def filter():
+    q = request.form['q']
+    d = fileStorage().get_file(session['key'])
+    return jsonresponse({'people': migra.filter ( d, q )})
+
 @app.route('/walk',methods=['GET','POST'])
 def walk():
     """Now we have to find our file and send it to gedcom -- unless we can attach the gedcom created earlier via session!"""
     d = fileStorage().get_file(session['key'])
-    
     return jsonresponse( migra.walk(d,request.form['i'],request.form['d']) )
     
 @app.route('/cache',methods=['POST'])

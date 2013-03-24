@@ -170,21 +170,20 @@ class MigraHelper:
         return best
     
     @classmethod
-    def buildListOfIndividuals(cls,l,q):
-        import sys
-        people = []
-    
+    def filterList(cls,d,q):
         if not q: sys.stderr.write ( 'No query string received.\n' )
 
-        q = q.lower()
+        q = q.lower().split()
 
         filtered = []
-        for p in l:
-            uname = unicode(p.name(),'utf-8').lower()
-            if ( uname.find(q) >= 0 ):    
-                filtered.append ( p )
+        for id in d.keys():
+            uname = d[id]['name'].lower()
+            for qt in q:
+                if ( uname.find(qt) >= 0 ):    
+                    filtered.append ( d[id] )
+                    break
 
-        return sorted(filtered, key=lambda person: person.name() )
+        return sorted(filtered, key=lambda person: person['name'] )
 
 class MigraError(Exception):
     def __init__ ( self, value ):
@@ -268,7 +267,7 @@ class Migra:
     def __init__(self):
         MigraGeocoder()
 
-    def processGedcom ( self, file, query ):
+    def processGedcom ( self, file ):
         #the calling function will have gotten the file from the web server and done something with it.
         #based upon its framework it probably will have saved the file, but who knows? what we need to do:
         #turn the file into a Gedcom object and then return a reference to it and a reference to the
@@ -280,18 +279,17 @@ class Migra:
         else:
             g = Gedcom(file)
 
-        full = []
         dict = {}
         for i in g.element_list():
             if i.individual():
                 p = MigraPerson(i)
                 dict[i.pointer()] = p
-                full.append ( p )
 
-        filtered = MigraHelper.buildListOfIndividuals(full,query)
+        return dict
 
-        return (dict, filtered)
-
+    def filter ( self, dict, query ):
+        return MigraHelper.filterList(dict,query)
+        
     def walk ( self, dict, id, depth ):
         '''Given a full list of all people, and a focal node, and a depth, tell the walker to walk back as far as it can '''
         walker = MigraWalker(dict,id,int(depth))

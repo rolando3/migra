@@ -19,7 +19,7 @@ if (!String.prototype.repeat) {
     }
 }
 
-MigraForms = { View: 1, UploadForm: 2, WalkForm: 3 };
+MigraForms = { View: 1, UploadForm: 2, FilterForm: 3, WalkForm: 4 };
 
 function initialize() 
 {
@@ -434,7 +434,6 @@ function clearMap()
     }
     
     Window.clusterer.clearMarkers();
-    
     Window.data.people = [];
     Window.data.addresses = [];
     
@@ -447,11 +446,20 @@ function addEventListeners()
     $('#upload_form').submit(function (e) {
         Window.stat.actionStart("Uploading data");
         processForm(this, e,function (result) {
+            Window.stat.actionEnd("Data uploaded");
+            showForm(MigraForms.FilterForm);
+        });
+    });
+    
+    //When our forms are submitted we want to process their forms. When those are done we want to do things.
+    $('#filter_form').submit(function (e) {
+        Window.stat.actionStart("Filtering list of individuals");
+        processForm(this, e,function (result) {
             buildPeopleList(result);
             Window.stat.actionEnd("List of people built");
         });
     });
-    
+
     $('#walk_form').submit(function (e) {
         Window.stat.actionStart("Walking the genealogy");
         processForm(this, e,function (result) {
@@ -466,12 +474,11 @@ function addEventListeners()
     
     $('#btn_restart').click(function(e) {
         //Might need to clean up data
-        
         showForm(MigraForms.UploadForm);
     });
         
     $('#btn_choose').click(function(e) {
-        showForm(MigraForms.WalkForm);
+        showForm(MigraForms.FilterForm);
     });
 
 }
@@ -479,23 +486,34 @@ function addEventListeners()
 function showForm ( n )
 {
     //there are three
+    
     if ( n == MigraForms.View ) 
     {
         $('#overlay').hide();
-        $('#walk_form_wrapper').hide();
         $('#upload_form_wrapper').hide();
+        $('#filter_form_wrapper').hide();
+        $('#walk_form_wrapper').hide();
     } 
     else if ( n == MigraForms.UploadForm ) 
     {
         $('#overlay').show();
-        $('#walk_form_wrapper').hide();
         $('#upload_form_wrapper').show();
+        $('#filter_form_wrapper').hide();
+        $('#walk_form_wrapper').hide();
     }
     else if ( n == MigraForms.WalkForm )
     {
         $('#overlay').show();
-        $('#walk_form_wrapper').show();
         $('#upload_form_wrapper').hide();
+        $('#filter_form_wrapper').hide();
+        $('#walk_form_wrapper').show();
+    }
+    else if ( n == MigraForms.FilterForm )
+    {
+        $('#overlay').show();
+        $('#upload_form_wrapper').hide();
+        $('#filter_form_wrapper').show();
+        $('#walk_form_wrapper').hide();
     }
     else
     {
@@ -550,7 +568,9 @@ function buildPeopleList(httpData)
     var value = "";
     var i = 0;
     Window.options = httpData.parameters;
-    //$('#sid').val(httpData.sid);
+    
+    $('#i_select').empty();
+    
     if ( httpData.people.length > 0 )
     {
         //We have found at least one match.
