@@ -4,13 +4,12 @@ html, body {
   height: 100%;
   font-family: Georgia, "Times New Roman", Times, serif;
   background-color: #eeeeff;
--webkit-user-select: none; /* Chrome/Safari */        
--moz-user-select: none; /* Firefox */
--ms-user-select: none; /* IE10+ */
-
-/* Rules below not implemented in browsers yet */
--o-user-select: none;
-user-select: none;
+  -webkit-user-select: none; /* Chrome/Safari */        
+  -moz-user-select: none; /* Firefox */
+  -ms-user-select: none; /* IE10+ */
+  /* Rules below not implemented in browsers yet */
+  -o-user-select: none;
+  user-select: none;
 }
 
 #header {
@@ -48,12 +47,13 @@ user-select: none;
 
 .pseudobutton {
 //    margin: 0.5em;
-    font-family: "Arial Black", "Helvetica Black", Gadget, sans-serif;
     text-decoration: none;
     color: white;
+    margin: 0 0 0 1em;
     padding: 0.5em;
     background-color: #9966ff;
     border: solid #ff7700 2px;
+    opacity: 0.8;
 }
 
 .pseudobutton a {
@@ -78,6 +78,7 @@ user-select: none;
 
 #message_pad {
   height: 100%;
+  padding: 0.25em;
 }
 
 progress {
@@ -246,5 +247,3 @@ transform:rotate(0deg)}
 transform:rotate(360deg)}
 
 }
-
-"Arial Black", "Helvetica Black", Gadget, sans-serif;
