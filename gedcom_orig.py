@@ -27,7 +27,7 @@ __all__ = ["Gedcom", "Element", "GedcomParseError"]
 # Global imports
 import string
 
-class Gedcom(object):
+class Gedcom:
     """ Gedcom parser
 
     This parser is for the Gedcom 5.5 format.  For documentation of
@@ -43,23 +43,16 @@ class Gedcom(object):
 
     """
 
-    def __init__(self,fd,options=None):
+    def __init__(self,file):
         """ Initialize a Gedcom parser. You must supply a Gedcom file.
         """
-
         self.__element_list = []
         self.__element_dict = {}
         self.__element_top = Element(-1,"","TOP","",self.__element_dict)
         self.__current_level = -1
         self.__current_element = self.__element_top
         self.__individuals = 0
-        self.__parse(fd)
-        self.__fd = fd
-
-    @classmethod
-    def fromfilename(cls, name):
-        import codecs
-        return cls(codecs.open( name, "r", "utf-8-sig" ))
+        self.__parse(file)
 
     def element_list(self):
         """ Return a list of all the elements in the Gedcom file.  The
@@ -74,35 +67,14 @@ class Gedcom(object):
         """
         return self.__element_dict
 
-    def element(self,pointer):
-        return self.__element_dict[pointer]
-
     # Private methods
 
-    def __strip_bom(self,l):
-        try:
-            bom_info = (
-                ('\xEF\xBB\xBF',     3, 'UTF-8'),
-                ('\xFE\xFF',         2, 'UTF-16BE'),
-                ('\xFF\xFE',         2, 'UTF-16LE'),
-                ('\xFF\xFE\x00\x00', 4, 'UTF-32LE'),
-                ('\x00\x00\xFE\xFF', 4, 'UTF-32BE'),
-                )
-                
-            for sig, siglen, enc in bom_info:
-                if l.startswith(sig):
-                    l = l[siglen:]
-        finally:
-            return l
-
-    def __parse(self,f):
+    def __parse(self,file):
         # open file
         # go through the lines
+        f = open(file)
         number = 1
         for line in f.readlines():
-            if number == 1:
-                line = self.__strip_bom(line)
-
             self.__parse_line(number,line)
             number += 1
         self.__count()
@@ -150,7 +122,7 @@ class Gedcom(object):
         try:
             l = int(parts[place])
         except ValueError:
-            self.__error(number,"Line must start with an integer level %s" % parts[place])
+            self.__error(number,"Line must start with an integer level")
 
         if (l < 0):
             self.__error(number,"Line must start with a positive integer")
@@ -181,10 +153,10 @@ class Gedcom(object):
         if len(parts) <= place:
             return ''
         p = self.__pointer(number,parts,place)
-        if p != '' and place < 3: #if we get to the fourth then 
+        if p != '':
             # rest of the line should be empty
             if len(parts) > place + 1:
-                self.__error(number,"Too many elements: %s (cannot be greater than %s)" % ( len(parts), place+1 ))
+                self.__error(number,"Too many elements")
             return p
         else:
             # rest of the line should be ours
@@ -206,6 +178,7 @@ class Gedcom(object):
             if e.individual():
                 self.__individuals += 1
 
+
     def __print(self):
         for e in self.element_list:
             print string.join([str(e.level()),e.pointer(),e.tag(),e.value()])
@@ -221,7 +194,7 @@ class GedcomParseError(Exception):
     def __str__(self):
         return `self.value`
 
-class Element(object):
+class Element:
     """ Gedcom element
 
     Each line in a Gedcom file is an element with the format
@@ -260,45 +233,11 @@ class Element(object):
         self.__value = value
         self.__dict = dict
         # structuring
-        self.__childrenrefs = []
-        self.__parentrefs = None
-    
-#    def __del__(self):
-#        print ( 'garbage collecting %s %s %s %s' % ( self.__level, self.__pointer, self.__tag, self.__value ) )
-    
-    def __event(self,event):
-        """ Return the location tuple of the given type as (date,place) """
-        if not self.individual():
-            return None;
+        self.__children = []
+        self.__parent = None
 
-        date = None
-        place = None
-
-        for e in self.children():
-            if e.tag() == event:
-                result = ( None, None )
-                for c in e.children():
-                    if c.tag() == "DATE":
-                        date = c.value()
-                    if c.tag() == "PLAC":
-                        place = c.value()
-        
-        return None if ( date, place ) == ( None, None ) else ( date, place )
-        
-    def __event_year(self,event):
-        """ Return the event year of a person in integer format """
-        date = ""
-        if not self.individual():
-            return date
-
-        e = self.__event(event);
-            
-        try:
-            datel = string.split(e[0])
-            date = datel[len(datel)-1]
-            return int(date)
-        except:
-            return None
+    def __del__(self):
+        print ( "Garbage collecting %s %s %s %s" % ( self.__level, self.__pointer, self.__tag, self.__value ) )
 
     def level(self):
         """ Return the level of this element """
@@ -318,21 +257,19 @@ class Element(object):
 
     def children(self):
         """ Return the child elements of this element """
-        return [ e() for e in self.__childrenrefs ]
+        return self.__children
 
     def parent(self):
         """ Return the parent element of this element """
-        return self.__parent()
+        return self.__parent
 
     def add_child(self,element):
-        import weakref
         """ Add a child element to this element """
-        self.children().append(weakref.ref(element))
+        self.children().append(element)
         
     def add_parent(self,element):
-        import weakref
         """ Add a parent element to this element """
-        self.__parent = weakref.ref(element)
+        self.__parent = element
 
     def individual(self):
         """ Check if this element is an individual """
@@ -426,35 +363,15 @@ class Element(object):
                     
         return match
 
-    def pointer_match(self,pointer):
-        """ Match a string with the pointer of an individual"""
-        return self.pointer() == pointer
-    
-    def name_match(self,name,casesensitive=True):
-        """ Match a string with either the given name or surname of an individual """
-        (first,last) = self.name()
-        if ( not casesensitive ):
-            name = name.lower()
-            first = first.lower()
-            last = last.lower()
-
-        parts = string.split(name.strip())
-        
-        for p in parts:
-            if ( p not in first and p not in last ):
-                return False
-                
-        return True
-        
     def surname_match(self,name):
         """ Match a string with the surname of an individual """
         (first,last) = self.name()
-        return last in name
+        return last.find(name) >= 0
 
     def given_match(self,name):
         """ Match a string with the given names of an individual """
         (first,last) = self.name()
-        return first in name
+        return first.find(name) >= 0
 
     def birth_year_match(self,year):
         """ Match the birth year of an individual.  Year is an integer. """
@@ -506,14 +423,12 @@ class Element(object):
                 f = self.__dict.get(e.value(),None)
                 if f != None:
                     results.append(f)
-
         return results
 
     def name(self):
         """ Return a person's names as a tuple: (first,last) """
         first = ""
         last = ""
-        suffix = ""
         if not self.individual():
             return (first,last)
         for e in self.children():
@@ -523,10 +438,7 @@ class Element(object):
                 if e.value() != "":
                     name = string.split(e.value(),'/')
                     first = string.strip(name[0])
-                    if len(name) > 1:
-                        last = string.strip(name[1])
-                    if len(name) > 2:
-                        suffix = string.strip(name[2])
+                    last = string.strip(name[1])
                 else:
                     for c in e.children():
                         if c.tag() == "GIVN":
@@ -535,51 +447,72 @@ class Element(object):
                             last = c.value()
         return (first,last)
 
-    def surname(self):
-        return self.name()[1]
-    
-    def given(self):
-        return self.name()[0]
-    
-    def full_name(self):
-        """ Return a string of the person's name """
-        return " ".join(self.name())
-
-    def sex(self):
-        if not self.individual():
-            return None;
-            
-        for e in self.children():
-            if e.tag() == "SEX":
-                return e.value();
-
-        return "?";
-
     def birth(self):
         """ Return the birth tuple of a person as (date,place) """
-        return self.__event("BIRT")
+        date = ""
+        place = ""
+        if not self.individual():
+            return (date,place)
+        for e in self.children():
+            if e.tag() == "BIRT":
+                for c in e.children():
+                    if c.tag() == "DATE":
+                        date = c.value()
+                    if c.tag() == "PLAC":
+                        place = c.value()
+        return (date,place)
 
     def birth_year(self):
         """ Return the birth year of a person in integer format """
-        return self.__event_year("BIRT")
-    
+        date = ""
+        if not self.individual():
+            return date
+        for e in self.children():
+            if e.tag() == "BIRT":
+                for c in e.children():
+                    if c.tag() == "DATE":
+                        datel = string.split(c.value())
+                        date = datel[len(datel)-1]
+        if date == "":
+            return -1
+        try:
+            return int(date)
+        except:
+            return -1
+
     def death(self):
         """ Return the death tuple of a person as (date,place) """
-        return self.__event("DEAT")
+        date = ""
+        place = ""
+        if not self.individual():
+            return (date,place)
+        for e in self.children():
+            if e.tag() == "DEAT":
+                for c in e.children():
+                    if c.tag() == "DATE":
+                        date = c.value()
+                    if c.tag() == "PLAC":
+                        place = c.value()
+        return (date,place)
 
     def death_year(self):
         """ Return the death year of a person in integer format """
         date = ""
-        return self.__event_year("DEAT")
+        if not self.individual():
+            return date
+        for e in self.children():
+            if e.tag() == "DEAT":
+                for c in e.children():
+                    if c.tag() == "DATE":
+                        datel = string.split(c.value())
+                        date = datel[len(datel)-1]
+        if date == "":
+            return -1
+        try:
+            return int(date)
+        except:
+            return -1
 
-    def baptism(self):
-        """ Return the birth tuple of a person as (date,place) """
-        return self.__event("BAPM")
-
-    def burial(self):
-        """ Return the baptism tuple of a person as (date,place) """
-        return self.__event("BURI")
-        
     def deceased(self):
         """ Check if a person is deceased """
         if not self.individual():
@@ -589,82 +522,51 @@ class Element(object):
                 return True
         return False
 
-    def parents(self):
-    	""" Return an individual's parents in a list, 
-    	    the father in position 0, mother in 1 
-    	"""
-    	
-    	parents = [None,None]
-    	if not self.individual():
-    		return parents
-    	
-    	for e in self.children():
-    		if e.tag() == "FAMC":
-    			f = self.__dict.get(e.value(),None)
-    			if f != None:
-    				for g in f.children():
-    					if g.tag() == "HUSB":
-    						parents[0] = self.__dict.get(g.value(),None)
-    					elif g.tag() == "WIFE":	
-    						parents[1] = self.__dict.get(g.value(),None)
-    	
-    	return parents
-
-    def marriages(self):
-        """ Return a list of marriage dicts for a person in the format
-         { family: FAM pointer (i.e. string),
-           spouse: INDI pointer (string),
-           date: string,
-           place: string }
+    def marriage(self):
+        """ Return a list of marriage tuples for a person, each listing
+        (date,place).
         """
-        marriages = []
+        date = ""
+        place = ""
         if not self.individual():
-            return marriages
-            
+            return (date,place)
         for e in self.children():
             if e.tag() == "FAMS":
                 f = self.__dict.get(e.value(),None)
-                if f != None:
-                    mar = { "family": e, "spouse": None, "date": None, "place": None }
-                    for g in f.children():
-	                    if g.tag() == "MARR":
-	                        for h in g.children():
-	                            if h.tag() == "DATE":
-	                                mar["date"] = h.value()
-	                            if h.tag() == "PLAC":
-	                                mar["place"] = h.value()
-	                    elif ( g.tag() == "HUSB" or g.tag() == "WIFE" ) and g.value() != self.pointer():
-	                        mar["spouse"] = self.__dict.get(g.value())
-	                                
-                    marriages.append(mar)             
-
-        return marriages
+                if f == None:
+                    return (date,place)
+                for g in f.children():
+                    if g.tag() == "MARR":
+                        for h in g.children():
+                            if h.tag() == "DATE":
+                                date = h.value()
+                            if h.tag() == "PLAC":
+                                place = h.value()
+        return (date,place)
 
     def marriage_years(self):
         """ Return a list of marriage years for a person, each in integer
         format.
         """
         dates = []
-        for m in self.marriages():
-            if len(m) > 0:
-                try:
-                    datel = date.split()
-                    if len(datel) > 0:
-                        dates.append ( int(datel[len(datel)-1]))
-                except:
-                    pass
+        if not self.individual():
+            return dates
+        for e in self.children():
+            if e.tag() == "FAMS":
+                f = self.__dict.get(e.value(),None)
+                if f == None:
+                    return dates
+                for g in f.children():
+                    if g.tag() == "MARR":
+                        for h in g.children():
+                            if h.tag() == "DATE":
+                                datel = string.split(h.value())
+                                date = datel[len(datel)-1]
+                                try:
+                                    dates.append(int(date))
+                                except:
+                                    pass
         return dates
-
-    def places(self):
-        """ Return a list of tuples (place, year) for a person's locations
-        """
-        result = []
-
-        for p in [ self.birth(), self.death(), self.baptism(), self.burial() ]:
-            if p != None:
-                result.append( p )
-        
-        return result
 
     def get_individual(self):
         """ Return this element and all of its sub-elements """
@@ -672,7 +574,7 @@ class Element(object):
         for e in self.children():
             result += '\n' + e.get_individual()
         return result
-        
+
     def get_family(self):
         result = self.get_individual()
         for e in self.children():
@@ -682,26 +584,6 @@ class Element(object):
                     result += '\n' + f.get_individual()
         return result
 
-    def family(self):
-        """ Gets the pointer of the family for which this person was a member """
-       	if not self.individual():
-    		return None
-
-        for e in self.children():
-            if e.tag() == "FAMC":
-                return e
-            
-        return None
-    
-    def offspring(self):
-        results = []
-        for f in self.families():
-            for e in f.children():
-                if e.tag() == "CHIL":
-                    results.append(self.__dict.get(e.value()))
-
-        return results
-            
     def __str__(self):
         """ Format this element as its original string """
         result = str(self.level())
@@ -711,4 +593,3 @@ class Element(object):
         if self.value() != "":
             result += ' ' + self.value()
         return result
-        
