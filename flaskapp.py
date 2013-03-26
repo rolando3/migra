@@ -4,7 +4,7 @@
 
 from migra import Migra, MigraPersonEncoder
 from migrastorage import fileStorage
-from flask import Flask, make_response, request, render_template, url_for, session, jsonify
+from flask import Flask, make_response, request, render_template, url_for, session, jsonify, send_from_directory
 import sys
 import os
 import json
@@ -29,7 +29,14 @@ def index():
         This is where all the HTML action happens. 
         Everything else is a JSON request/response """
     return render_template('index.html')
-    
+
+@app.route('/favicon.ico')
+def favicon():
+    path = os.path.join(app.root_path, 'static/img')
+    sys.stderr.write ( path + "\n" )
+    return send_from_directory(path,
+                               'favicon.ico', mimetype='image/vnd.microsoft.icon')
+
 @app.route('/upload',methods=['POST'])
 def upload():
     """ Get the file and the search term from the upload, turn it into a gedcom, do something with this """
