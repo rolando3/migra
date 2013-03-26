@@ -486,7 +486,7 @@ function addEventListeners()
 
 function showForm ( n )
 {
-    //there are three
+    //there are three forms; the fourth view is the unobscured map
     
     if ( n == MigraForms.View ) 
     {
