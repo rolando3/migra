@@ -47,7 +47,7 @@ def upload():
 def filter():
     q = request.form['q']
     d = fileStorage().get_file(session['key'])
-    return jsonresponse({'people': migra.filter ( d, q )})
+    return jsonresponse({'people': migra.filter ( d, q ), 'parameters': { 'query': q } } )
 
 @app.route('/walk',methods=['GET','POST'])
 def walk():
