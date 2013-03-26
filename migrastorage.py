@@ -63,13 +63,11 @@ class AmazonS3FileStorage:
         return key
 
     @classmethod
-    def test_key(cls,k=None):
-        k = cls.__key(k)
-        return k
-
-    @classmethod
     def store_file(cls,d,k=None):
         awsKey = cls.__key(k)
+        if awsKey is None:
+            awsKey = cls.__key()
+        
         awsKey.set_contents_from_string(json.dumps(d,indent=4,cls=MigraPersonEncoder))
 
         return awsKey.key
@@ -77,12 +75,8 @@ class AmazonS3FileStorage:
     @classmethod
     def get_file(cls,k):
         awsKey = cls.__key(k)
-        return json.loads(awsKey.get_contents_as_string())
-
-    @classmethod
-    def check_key(cls,k):
-        awsKey = cls.__key(k)
-        return awsKey.key
+        if awsKey is not None:
+            return json.loads(awsKey.get_contents_as_string())
 
     @classmethod
     def list_keys(cls):
