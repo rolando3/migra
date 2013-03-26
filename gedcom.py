@@ -49,12 +49,15 @@ class Gedcom(object):
 
         self.__element_list = []
         self.__element_dict = {}
-        self.__element_top = Element(-1,"","TOP","",self.__element_dict)
+        self.__element_top = Element(-1,"","TOP","",self)
         self.__current_level = -1
         self.__current_element = self.__element_top
         self.__individuals = 0
         self.__parse(fd)
         self.__fd = fd
+        
+#    def __del__(self):
+#        self.__element_dict = None
 
     @classmethod
     def fromfilename(cls, name):
@@ -125,7 +128,7 @@ class Gedcom(object):
         if l > self.__current_level + 1:
             self.__error(number,"Structure of GEDCOM file is corrupted")
 
-        e = Element(l,p,t,v,self.element_dict())
+        e = Element(l,p,t,v,self)
         self.__element_list.append(e)
         if p != '':
             self.__element_dict[p] = e
@@ -248,23 +251,25 @@ class Element(object):
 
     """
 
-    def __init__(self,level,pointer,tag,value,dict):
+    def __init__(self,level,pointer,tag,value,gedcom):
         """ Initialize an element.  You must include a level, pointer,
         tag, value, and global element dictionary.  Normally initialized
         by the Gedcom parser, not by a user.
         """
+        import weakref
         # basic element info
         self.__level = level
         self.__pointer = pointer
         self.__tag = tag
         self.__value = value
-        self.__dict = dict
+        self.__gedcom = weakref.ref(gedcom)
         # structuring
-        self.__childrenrefs = []
-        self.__parentrefs = None
-    
-#    def __del__(self):
-#        print ( 'garbage collecting %s %s %s %s' % ( self.__level, self.__pointer, self.__tag, self.__value ) )
+        self.__children = []
+        self.__parentref = None
+        
+    def __find_element(self,ptr):
+        ''' find another element in the gedcom, given a pointer '''
+        return self.__gedcom().element_dict().get(ptr,None)
     
     def __event(self,event):
         """ Return the location tuple of the given type as (date,place) """
@@ -318,16 +323,15 @@ class Element(object):
 
     def children(self):
         """ Return the child elements of this element """
-        return [ e() for e in self.__childrenrefs ]
+        return self.__children
 
     def parent(self):
         """ Return the parent element of this element """
         return self.__parent()
 
     def add_child(self,element):
-        import weakref
         """ Add a child element to this element """
-        self.children().append(weakref.ref(element))
+        self.children().append(element)
         
     def add_parent(self,element):
         import weakref
@@ -368,6 +372,7 @@ class Element(object):
                 key,value = crit.split('=')
         except:
             return False
+            
         match = True
         for crit in criteria.split(':'):
             key,value = crit.split('=')
@@ -503,7 +508,7 @@ class Element(object):
         results = []
         for e in self.children():
             if e.tag() == "FAMS":
-                f = self.__dict.get(e.value(),None)
+                f = self.__find_element(e.value())
                 if f != None:
                     results.append(f)
 
@@ -600,13 +605,13 @@ class Element(object):
     	
     	for e in self.children():
     		if e.tag() == "FAMC":
-    			f = self.__dict.get(e.value(),None)
+    			f = self.__find_element(e.value())
     			if f != None:
     				for g in f.children():
     					if g.tag() == "HUSB":
-    						parents[0] = self.__dict.get(g.value(),None)
+    						parents[0] = self.__find_element(g.value())
     					elif g.tag() == "WIFE":	
-    						parents[1] = self.__dict.get(g.value(),None)
+    						parents[1] = self.__find_element(g.value())
     	
     	return parents
 
@@ -623,7 +628,7 @@ class Element(object):
             
         for e in self.children():
             if e.tag() == "FAMS":
-                f = self.__dict.get(e.value(),None)
+                f = self.__find_element(e.value())
                 if f != None:
                     mar = { "family": e, "spouse": None, "date": None, "place": None }
                     for g in f.children():
@@ -634,7 +639,7 @@ class Element(object):
 	                            if h.tag() == "PLAC":
 	                                mar["place"] = h.value()
 	                    elif ( g.tag() == "HUSB" or g.tag() == "WIFE" ) and g.value() != self.pointer():
-	                        mar["spouse"] = self.__dict.get(g.value())
+	                        mar["spouse"] = self.__find_element(g.value())
 	                                
                     marriages.append(mar)             
 
@@ -677,7 +682,7 @@ class Element(object):
         result = self.get_individual()
         for e in self.children():
             if e.tag() == "HUSB" or e.tag() == "WIFE" or e.tag() == "CHIL":
-                f = self.__dict.get(e.value())
+                f = self.__find_element(e.value())
                 if f != None:
                     result += '\n' + f.get_individual()
         return result
@@ -698,7 +703,7 @@ class Element(object):
         for f in self.families():
             for e in f.children():
                 if e.tag() == "CHIL":
-                    results.append(self.__dict.get(e.value()))
+                    results.append(self.__find_element(e.value()))
 
         return results
             
