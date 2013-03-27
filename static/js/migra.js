@@ -113,15 +113,6 @@ function Address ( placename, latlng )
     //Address class. Placename coupled with a google maps LatLng object
     this.placename = placename;
     this.loc = latlng;
-    
-/*
-    if ( latlng != null ) {
-        console.log ( "New address {0} ({1},{2})".format(placename,latlng.lat(),latlng.lng()));
-    } else {
-        console.log ( "New address {0} (not yet cached)" );
-    }
-*/
-        
     this.people = [];
     
     this.addPerson = function(person) 
@@ -131,20 +122,8 @@ function Address ( placename, latlng )
     
     this.cache = function() 
     {
-        action = "/cache"
-        //Given an address, send an AJAX request to cache 
-        //We don't even care if it works.
-        $.ajax({
-            type: 'post',
-            data: { data: JSON.stringify({ name: this.placename, lat: this.loc.lat(), lng: this.loc.lng() } ) },
-            url: action,
-            success: function ( results ) {
-                //
-            },
-            error: function( xhr, httpStatus, msg ) { 
-                //
-            }
-        });
+        var data = JSON.stringify({ name: this.placename, lat: this.loc.lat(), lng: this.loc.lng() } );
+        $.post( "/cache", data );
     }
     
     this.draw = function ()
@@ -197,24 +176,25 @@ function Mapper ( )
         {
             m = this;
          	window.geocoder.geocode( { 'address': address.placename }, function ( results, status ) {
+         	    //window.mapper below is essentially this
            		if (status == google.maps.GeocoderStatus.OK ) 
            		{
         		    window.stat.info ( "Geocoded {0}.".format(address.placename) );
                     address.loc = results[0].geometry.location;
                     address.draw();
                     address.cache();
-                    window.mapper.locationStatus.geocoded ++;
+                    m.locationStatus.geocoded ++;
            		}
            		else if (status == google.maps.GeocoderStatus.OVER_QUERY_LIMIT) 
            		{
-                    setTimeout(function() { window.mapper.map(address); }, Math.random() * 10000 );
+                    setTimeout(function() { m.map(address); }, Math.random() * 10000 );
         		}
         		else
         		{
            		    window.stat.info ( "Error finding {0}: {1}.".format ( address.placename , status ) );
-        		    window.mapper.locationStatus.error ++;
+        		    m.locationStatus.error ++;
         		}
-        		window.mapper.__progressFunctionLocations();
+        		m.__progressFunctionLocations();
          	} );
         }
     }
@@ -232,15 +212,12 @@ function AncestryLink ( parentID, childID )
     this.polyLine = null;
     
     this.draw = function ( ) {
-       	//Go through the legs
+        //Go through the legs
        	//Look up the coordinates
     
-        var maxWeight = window.options["depth"];
-    
-    	if ( this.parent.loc === undefined || this.child.loc === undefined ) return;
-    
-        strokecolor = getStrokeColor ( this );
-    
+        if ( this.parent.loc === undefined || this.child.loc === undefined ) return;
+
+        var maxWeight = window.options["depth"];    
     	var opacity = 0.5;
     	var weight = Math.abs ( maxWeight - Math.min ( this.parent.generation, maxWeight - 1 ) );    	
     	if ( weight < 1 || weight === undefined || weight == NaN ) weight = 1;
@@ -250,7 +227,7 @@ function AncestryLink ( parentID, childID )
           strokeWeight: weight,
           geodesic: true,
           strokeOpacity: opacity,
-          strokeColor: strokecolor,
+          strokeColor: this.getStrokeColor(),
           map: window.map,
           link: this
         };
@@ -265,6 +242,29 @@ function AncestryLink ( parentID, childID )
             });
     }
 
+    this.getStrokeColor = function() {
+        
+        var colors = { M: 0, F: 0 }
+        
+        for ( i = 1; i < this.parent.path.length; i ++ ) {
+            colors[window.data.people[this.parent.path[i]].sex] += ( 1 / Math.pow(2,i) ); 
+        }
+        colors[this.parent.sex] += ( 1 / Math.pow(2,this.parent.path.length) );
+    
+        bluefactor = Math.round(colors["M"] * 255).toString(16);
+        redfactor = Math.round(colors["F"] * 255).toString(16);
+        greenfactor = Math.round(Math.min(colors["M"],colors["F"])*255).toString(16);
+        
+        bluefactor = "0".repeat(2-bluefactor.length) + bluefactor;
+        redfactor = "0".repeat(2-redfactor.length) + redfactor;
+        greenfactor = "0".repeat(2-greenfactor.length) + greenfactor;
+        
+        strokeColor = "#{0}{1}{2}".format ( redfactor,greenfactor,bluefactor );
+        
+        return strokeColor
+        
+    }
+    
 
 }
 
@@ -306,6 +306,28 @@ function Person ( jsonPerson )
         window.data.addresses[this.placename].addPerson(this);
     }
 
+    this.findAncestorsWithLocation = function() {
+        if ( this.loc !== undefined ) return [this];
+         
+        result = [];
+        for ( i=0; i < this.parentLinks.length; i++ ) {
+            console.log ( "Hi" );
+            result.push(this.parentLinks[i].parent.findAncestorsWithLocation());
+        }
+        return result;
+    }
+
+    this.findDescendantsWithLocation = function() {
+        if ( this.loc !== undefined ) return [this];
+         
+        result = [];
+        for ( i=0; i < this.childLinks.length; i++ ) {
+            console.log ( "Ho" );
+            result.push(this.childLinks[i].child.findDescendantsWithLocation());
+        }
+        return result;
+    }
+    
     //add a link to this person.    
     this.addParentLink = function ( link ) {
         this.parentLinks.push ( link );
@@ -705,29 +727,6 @@ function showMigrationMarkers ( startRange, endRange )
     }
     
     setTimeout ( function() { showMigrationMarkers ( startRange + 15, endRange ); }, 1000 );
-}
-
-function getStrokeColor ( link ) {
-    
-    var colors = { M: 0, F: 0 }
-    
-    for ( i = 1; i < link.parent.path.length; i ++ ) {
-        colors[window.data.people[link.parent.path[i]].sex] += ( 1 / Math.pow(2,i) ); 
-    }
-    colors[link.parent.sex] += ( 1 / Math.pow(2,link.parent.path.length) );
-
-    bluefactor = Math.round(colors["M"] * 255).toString(16);
-    redfactor = Math.round(colors["F"] * 255).toString(16);
-    greenfactor = Math.round(Math.min(colors["M"],colors["F"])*255).toString(16);
-    
-    bluefactor = "0".repeat(2-bluefactor.length) + bluefactor;
-    redfactor = "0".repeat(2-redfactor.length) + redfactor;
-    greenfactor = "0".repeat(2-greenfactor.length) + greenfactor;
-    
-    strokeColor = "#{0}{1}{2}".format ( redfactor,greenfactor,bluefactor );
-    
-    return strokeColor
-    
 }
 
 function getRelationshipDesc ( person ) 

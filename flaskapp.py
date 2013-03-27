@@ -11,7 +11,6 @@ import json
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('MIGRA_SESSIONKEY','CJ!31ioQcw89*')
-app.config['UPLOAD_FOLDER'] = os.environ.get('MIGRA_UPLOADFOLDER','')
 migra = Migra()
 
 def jsonresponse(data):
@@ -44,8 +43,7 @@ def upload():
     
     if file and __allowed_file(file.filename):
         all = migra.upload(file)
-        k = session.get('key',None)
-        session['key'] = fileStorage().store_file(all,k)
+        session['key'] = fileStorage().store_file(all,session.get('key',None))
         return jsonresponse({'count': len(all.keys())})
     else:
         raise MigraError, ('File not allowed')

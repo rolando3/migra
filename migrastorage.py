@@ -10,21 +10,25 @@ def fileStorage():
 
 class LocalFileStorage:
     @classmethod
-    def store_file(cls,d,k):
+    def __getfolder(cls):
+        return os.environ.get('MIGRA_UPLOADFOLDER','.')
+
+    @classmethod
+    def store_file(cls,d,k=None):
         """ Given a dict of all of the people in our gedcom, store it somewhere, and then pass back an 
             identifier that will make it easy to find on the second pass."""
         from tempfile import NamedTemporaryFile
     
-        f = NamedTemporaryFile(suffix='.json',dir=app.config['UPLOAD_FOLDER'],delete=False)
-        fn = f.name
+        f = NamedTemporaryFile(suffix='.json',dir=cls.__getfolder(),delete=False)
+        sys.stderr.write ( " saving to %s \n" % f.name )
         f.write(json.dumps(d,indent=4,cls=MigraPersonEncoder))
         f.close()
-        return fn.split('/')[-1]
+        return f.name.split('/')[-1]
         
     @classmethod
     def get_file(cls,k):
         """ Given a key, get the stored file and return the deserialized object """
-        f = open('/'.join((app.config['UPLOAD_FOLDER'],k)),'r')    
+        f = open('/'.join((cls.__getfolder(),k)),'r')    
         d = json.load(f)
         f.close()
         return d
@@ -96,7 +100,7 @@ class AmazonS3FileStorage:
 
     @classmethod
     def cleanup(cls, age):
-        """ delete all keys more than age seconds old """
+        """ delete all keys more than /age/ seconds old """
 
         from boto.s3.connection import Key
         from time import gmtime
