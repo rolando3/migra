@@ -327,7 +327,7 @@ class Element(object):
 
     def parent(self):
         """ Return the parent element of this element """
-        return self.__parent()
+        return self.__parentref()
 
     def add_child(self,element):
         """ Add a child element to this element """
@@ -336,7 +336,7 @@ class Element(object):
     def add_parent(self,element):
         import weakref
         """ Add a parent element to this element """
-        self.__parent = weakref.ref(element)
+        self.__parentref = weakref.ref(element)
 
     def individual(self):
         """ Check if this element is an individual """
