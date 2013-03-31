@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 from migrastorage import fileStorage
 import logging
 
