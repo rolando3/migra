@@ -10,7 +10,7 @@ import os
 import json
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('MIGRA_SESSIONKEY','CJ!31ioQcw89*')
+app.secret_key = os.environ.get('MIGRA_SESSIONKEY',None)
 migra = Migra()
 
 def jsonresponse(data):
