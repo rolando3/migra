@@ -21,7 +21,7 @@ class LocalFileStorage:
     
         f = NamedTemporaryFile(suffix='.json',dir=cls.__getfolder(),delete=False)
         sys.stderr.write ( " saving to %s \n" % f.name )
-        f.write(json.dumps(d,indent=4,cls=MigraPersonEncoder))
+        f.write(json.dumps(d,cls=MigraPersonEncoder))
         f.close()
         return f.name.split('/')[-1]
         
@@ -36,7 +36,19 @@ class LocalFileStorage:
     @classmethod
     def cleanup(cls, age):
         """ delete all files more than age seconds old """
-        pass
+        from time import gmtime
+        from calendar import timegm
+        
+        delcount = 0
+        fo = cls.__getfolder()
+        curtime = timegm(gmtime())
+
+        for file in os.listdir(fo):
+            path = '/'.join((fo,file))
+            mod = os.stat(path).st_mtime
+            if ( curtime - mod > age ):
+                delcount =+ 1
+                os.remove(path)
 
 class AmazonS3FileStorage:
     @classmethod
@@ -72,7 +84,7 @@ class AmazonS3FileStorage:
         if awsKey is None:
             awsKey = cls.__key()
         
-        awsKey.set_contents_from_string(json.dumps(d,indent=4,cls=MigraPersonEncoder))
+        awsKey.set_contents_from_string(json.dumps(d,cls=MigraPersonEncoder))
 
         return awsKey.key
                     
