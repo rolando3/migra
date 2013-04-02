@@ -54,6 +54,9 @@ html, body {
     background-color: #9966ff;
     border: solid #ff7700 2px;
     opacity: 0.8;
+    -webkit-border-radius: 5px;
+    -moz-border-radius: 5px;
+    border-radius: 5px;
 }
 
 .pseudobutton a {

@@ -604,6 +604,12 @@ function addEventListeners()
     $('#btn_choose').click(function(e) {
         showForm(MigraForms.FilterForm);
     });
+    
+    $('#btn_help').click(function(e) {
+    });
+
+    $('#btn_about').click(function(e) {
+    });
 
 }
 
