@@ -30,8 +30,9 @@ function initialize()
         mapTypeId: google.maps.MapTypeId.ROADMAP
     };
 
-    window.data = { people: [], addresses: [] };
-    window.overlays = { markers: [], polylines: [] };
+    //Do not define these at all.
+    window.data = null;
+    window.overlays = null;
     window.options = {};
 
     window.stat = new MigraStatus();
@@ -125,9 +126,9 @@ function Address ( placename, latlng )
         var obj = { name: this.placename, lat: this.latlng.lat(), lng: this.latlng.lng() };
         var data = JSON.stringify( obj );
         try {
-//            $.post( "/cache", data );
+            $.post( "/cache", data );
         } catch ( e ) {
-            window.status.warning ( "Failed to cache {0} at ({1}, {2})", obj.name, obj.lat, obj.lng );
+            window.status.warning ( "Failed to cache {0} at ({1}, {2}): {3}", obj.name, obj.lat, obj.lng, e.toString() );
         }
     }
     
@@ -163,9 +164,21 @@ function Mapper ( )
        {
            window.stat.actionEnd();
            window.stat.info ( "Mapped {0} individuals at {4} distinct locations ({1} geocoded and cached, {2} retrieved from cache, {3} errors).".format ( Object.keys(window.data.people).length, this.locationStatus.geocoded, this.locationStatus.cache, this.locationStatus.error, this.locationStatus.total ) );
+           this.drawMissingLinks();
        	} else {
            	window.stat.actionUpdate(this.locationStatus.geocoded + this.locationStatus.error, this.locationStatus.total - this.locationStatus.cache);
        	}
+    }
+
+    this.drawMissingLinks = function ( ) {
+        //When this happens we need to go find the links that have not been drawn
+        for ( var i=0; i < window.data.links.length; i ++ )
+        {
+            l = window.data.links[i];
+            if ( ! l.drawn ) {
+                l.resolveMissingLink();
+            }
+        }
     }
 
     this.map = function (address) 
@@ -213,7 +226,7 @@ function AncestryLink ( parentID, childID )
     this.child = window.data.people[childID];
     window.data.people[childID].addParentLink(this);
     
-    this.polyLine = null;
+    this.drawn = false;
     
     this.draw = function ( ) {
         //Draw may be called three times on this link. The first time when it is established, and then
@@ -224,30 +237,82 @@ function AncestryLink ( parentID, childID )
        	if ( this.child.latlng === undefined  || this.child.latlng == null ) return;
         
         this.drawOne ( this.parent, this.child );
+        this.drawn = true;
+    }
+
+    this.resolveMissingLink = function ( ) {
+        //Make sure we haven't been drawn.
+        if ( this.drawn ) return;
+        
+        var ancestors = [];
+        var descendants = [];
+        
+        if ( this.parent.latlng === undefined  || this.parent.latlng == null )
+        {
+            //If parent does not have a lat/lng then 
+            ancestors = this.parent.findAncestorsWithLocation(0);
+        } else {
+            ancestors = [ this.parent ];
+        }
+        
+        if ( this.child.latlng === undefined  || this.child.latlng == null )
+        {
+            descendants = this.child.findDescendantsWithLocation(0);
+        } else {
+            descendants = [ this.child ];
+        }
+
+        for ( var a=0; a < ancestors.length; a++ ) {
+            for ( var d=0; d < descendants.length; d++ ) {
+                this.drawOne ( ancestors[a], descendants[d] );
+//                console.log ( "Creating link from {0} to {1} spanning {2} generation(s)".format ( ancestors[a].name, descendants[d].name, ancestors[a].generation - descendants[d].generation ) );
+            }
+        }
+        
+        this.drawn = true;
+
     }
 
     this.drawOne = function ( p, c )     
     {
         var maxWeight = window.options["depth"];    
-    	var opacity = 0.5;
+    	var lineOpacity = 0.5;
     	var weight = Math.abs ( maxWeight - Math.min ( p.generation, maxWeight - 1 ) );    	
     	if ( weight < 1 || weight === undefined || weight == NaN || weight == null ) weight = 1;
+    	
+    	var icons = null;
+    	
+    	if ( p.generation - c.generation > 1 )
+    	{
+    	    lineOpacity = 0;
+    	    icons = [{
+    	        icon: {
+                    path: 'M 0,-1 0,1',
+                    strokeOpacity: 0.3,
+                    strokeWeight: weight,
+                    scale: 4 
+                },
+                offset: '0',
+                repeat: '15px'
+    	    }];
+    	}
     	
         var plOptions = {
           path: [ p.latlng, c.latlng ],
           strokeWeight: weight,
           geodesic: true,
-          strokeOpacity: opacity,
+          strokeOpacity: lineOpacity,
           strokeColor: this.getStrokeColor(),
           map: window.map,
-          link: this
+          link: this,
+          icons: icons
         };
     
-    	this.polyLine = new google.maps.Polyline(plOptions);
-    	window.overlays.polylines.push ( this.polyLine );
+    	var pl = new google.maps.Polyline(plOptions);
+    	window.overlays.polylines.push ( pl );
     
         //On click show path from this person to the focal individual
-        google.maps.event.addListener(this.polyLine, 'click', function() { 
+        google.maps.event.addListener(pl, 'click', function() { 
             this.link.parent.showPathToFocus ( );
         });
     }
@@ -418,30 +483,64 @@ function Person ( jsonPerson )
             this.parentLinks[j].draw();
         }
         
-/*
-        google.maps.event.addListener(m, 'click', function()
-            { 
-                m.person.showPathToFocus ( );
-            });
-*/
     }
+
+    this.findAncestorsWithLocation = function(l) {
+        if ( l > 10 ) return [ this ];
+        
+        if ( this.latlng !== undefined && this.latlng != null ) {
+            return [this];
+        }    
+
+        var result = [];
+        for ( var i=0; i < this.parentLinks.length; i++ ) {
+            var a = this.parentLinks[i].parent.findAncestorsWithLocation(l+1);
+            for ( var j=0; j < a.length; j++ ) { 
+                result.push(a[j]); 
+            }
+        }
+        
+        return result;
+    }
+
+    this.findDescendantsWithLocation = function(l) {
+        if ( l > 10 ) return [ this ];
+
+        if ( this.latlng !== undefined && this.latlng != null ) {
+            return [this];
+        }    
+
+        var result = [];
+        for ( var i=0; i < this.childLinks.length; i++ ) {
+            var d = this.childLinks[i].child.findDescendantsWithLocation(l+1);
+            for ( var j=0; j < d.length; j++ ) { 
+                result.push(d[j]); 
+            }
+        }
+
+        return result;
+    }
+
 
 }
 
 //reset the map.
 function clearMap() 
 {
-    for (var i = 0; i < window.overlays.markers.length; i++ ) 
-    {
-        window.overlays.markers[i].setMap(null);
+
+    if ( window.overlays != null ) {
+        for (var i = 0; i < window.overlays.markers.length; i++ ) 
+        {
+            window.overlays.markers[i].setMap(null);
+        }
+        
+        for (var i = 0; i < window.overlays.polylines.length; i++ ) 
+        {
+            window.overlays.polylines[i].setMap(null);
+        }
     }
     
-    for (var i = 0; i < window.overlays.polylines.length; i++ ) 
-    {
-        window.overlays.polylines[i].setMap(null);
-    }
-    
-    window.data = { people: [], addresses: [] };
+    window.data = { people: [], addresses: [], links: [] };
     window.overlays = { markers: [], polylines: [] };
     
     window.clusterer.clearMarkers();
@@ -464,8 +563,16 @@ function addEventListeners()
     $('#filter_form').submit(function (e) {
         window.stat.actionStart("Filtering list of individuals");
         processForm(this, e,function (result) {
-            buildPeopleList(result);
-            window.stat.actionEnd("List of people built");
+            try
+            {
+                buildPeopleList(result);
+                window.stat.actionEnd("List of people built");
+            }
+            catch ( e )
+            {
+                window.stat.error ( "Error filtering: {0}.".format(e.toString()) );
+                showForm ( MigraForms.FilterForm );
+            }
         });
     });
 
@@ -473,7 +580,15 @@ function addEventListeners()
         window.stat.actionStart("Walking the genealogy");
         processForm(this, e,function (result) {
             window.stat.actionStart("Genealogy walked. Drawing map");
-            drawMap(result);
+            try
+            {
+                drawMap(result);
+            }
+            catch ( e )
+            {
+                window.stat.error ( "Error walking: {0}.".format(e.toString()) );
+                showForm ( MigraForms.FilterForm );
+            } 
         });
     });
 
@@ -555,7 +670,7 @@ function processForm(form, e, successfunction )
           myXhr = $.ajaxSettings.xhr();
           if (myXhr.upload) {
             myXhr.upload.addEventListener('progress', function(evt) { window.stat.actionUpdate(evt.loaded,evt.total); }, false);
-            myXhr.upload.addEventListener('load', function(evt) { window.stat.actionStart("Upload complete. Server processing data"); } );
+            myXhr.upload.addEventListener('load', function(evt) { window.stat.actionStart("Server processing data"); } );
           }
           return myXhr;
         },
@@ -621,7 +736,7 @@ function drawMap ( httpData )
     for ( i = 0; i < httpData.links.length; i++ ) 
     {
         //note that parent, child here are IDs/Pointers
-        new AncestryLink ( httpData.links[i].parent, httpData.links[i].child );
+        window.data.links.push ( new AncestryLink ( httpData.links[i].parent, httpData.links[i].child ) );
     }
 
     window.stat.info ( "Ancestry parsed for {0}. {1} people retrieved. {2} links retrieved. {3} distinct addresses retrieved.".format ( httpData.people[0].name,  Object.keys(window.data.people).length, httpData.links.length, addressNames.length ) );
@@ -742,71 +857,3 @@ function xinspect(o,i){
 }
 
 google.maps.event.addDomListener(window, 'load', initialize);
-
-/* To be used in Person */
-/* 
-    this.findAncestorsWithLocation = function(l) {
-        if ( l > 10 ) return [ this ];
-        
-        if ( this.latlng !== undefined && this.latlng != null ) {
-            return [this];
-        }    
-
-        var result = [];
-        for ( var i=0; i < this.parentLinks.length; i++ ) {
-            var a = this.parentLinks[i].parent.findAncestorsWithLocation(l+1);
-            for ( var j=0; j < a.length; j++ ) { 
-                result.push(a[j]); 
-            }
-        }
-        
-        return result;
-    }
-
-    this.findDescendantsWithLocation = function(l) {
-        if ( l > 10 ) return [ this ];
-
-        if ( this.latlng !== undefined && this.latlng != null ) {
-            return [this];
-        }    
-
-        var result = [];
-        for ( var i=0; i < this.childLinks.length; i++ ) {
-            var d = this.childLinks[i].child.findDescendantsWithLocation(l+1);
-            for ( var j=0; j < d.length; j++ ) { 
-                result.push(d[j]); 
-            }
-        }
-
-        return result;
-    }
-
-** To be used in AncestryLink **
-        {
-            //If parent does not have a lat/lng then 
-            console.log ( "{0} (ancestor) is missing a location".format(this.parent.name) );
-            var a = this.parent.findAncestorsWithLocation(0);
-            console.log ( "{0} (ancestor) locations found: {1}".format(this.parent.name,a.length) );
-            for ( var i=0; i<a.length; i++ ) {
-                console.log ( "  Found ancestor with location: {0}".format(a[i].name) )
-            }
-            return;
-        } else {
-            console.log ( "{0} has a location".format(this.parent.name) );
-        }
-        
-        if ( this.child.latlng === undefined  || this.child.latlng == null )
-        {
-            console.log ( "{0} (descendant) is missing a location".format(this.child.name) );
-            var d = this.child.findDescendantsWithLocation(0);
-            console.log ( "{0} (descendant) locations found: {1}".format(this.child.name,d.length) );
-            for ( var i=0; i<d.length; i++ ) {
-                console.log ( "  Found descendant with location: {0}".format(d[i].name) )
-            }
-            return;
-        } else {
-            console.log ( "{0} has a location".format(this.child.name) );
-        }
-        
-    
-*/

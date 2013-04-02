@@ -14,7 +14,7 @@ app.secret_key = os.environ.get('MIGRA_SESSIONKEY',None)
 migra = Migra()
 
 def jsonresponse(data):
-    resp = make_response(json.dumps(data,indent=4,cls=MigraPersonEncoder))
+    resp = make_response(json.dumps(data,cls=MigraPersonEncoder))
     resp.headers['Content-Type'] = 'application/json'
     return resp
 
