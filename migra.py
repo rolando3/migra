@@ -219,14 +219,20 @@ class MigraHelper:
         if not q: sys.stderr.write ( 'No query string received.\n' )
 
         q = q.lower().split()
+        match = 0
 
         filtered = []
         for id in d.keys():
             uname = d[id]['name'].lower()
+            match = 0
             for qt in q:
-                if ( uname.find(qt) >= 0 ):    
-                    filtered.append ( d[id] )
+                if ( uname.find(qt) >= 0 ):
+                    match = 1
+                else:
+                    match = 0
                     break
+
+            if match == 1: filtered.append ( d[id] )
 
         return sorted(filtered, key=lambda person: person['name'] )
 
