@@ -20,6 +20,7 @@ if (!String.prototype.repeat) {
 }
 
 MigraForms = { View: 1, UploadForm: 2, FilterForm: 3, WalkForm: 4 };
+MigraPopups = { Help: 101, About: 102, Info: 103 };
 
 function initialize() 
 {
@@ -123,13 +124,26 @@ function Address ( placename, latlng )
     
     this.cache = function() 
     {
-        var obj = { name: this.placename, lat: this.latlng.lat(), lng: this.latlng.lng() };
-        var data = JSON.stringify( obj );
         try {
-            $.post( "/cache", data );
+            var req = { name: this.placename, lat: this.latlng.lat(), lng: this.latlng.lng() };
+            $.ajax({
+                url: '/cache',
+                type: 'post',
+                data: JSON.stringify( req ),
+                contentType: 'application/json',
+                dataType: 'json'
+            });
         } catch ( e ) {
-            window.status.warning ( "Failed to cache {0} at ({1}, {2}): {3}", obj.name, obj.lat, obj.lng, e.toString() );
+            window.status.warning ( "Failed to cache {0} at ({1}, {2}): {3}", req.name, req.lat, req.lng, e.toString() );
         }
+
+
+/*
+            $.post( "/cache", 
+                    JSON.stringify( req ), 
+                    function(data) { },
+                    'json' );
+*/
     }
     
     this.draw = function ()
@@ -606,11 +620,48 @@ function addEventListeners()
     });
     
     $('#btn_help').click(function(e) {
+        showPopup(MigraPopups.Help);
     });
 
     $('#btn_about').click(function(e) {
+        showPopup(MigraPopups.About);
     });
+    
+    $('.popup_closer').click(function(e) {
+        hidePopups();
+    });
+    
+}
 
+function hidePopups()
+{
+    $('#popup_info').hide();
+    $('#popup_help').hide();
+    $('#popup_about').hide();
+}
+
+
+function showPopup ( n )
+{
+    if ( n == MigraPopups.Info )
+    {
+        $('#popup_info').show();
+        $('#popup_help').hide();
+        $('#popup_about').hide();
+
+    }
+    else if ( n == MigraPopups.About )
+    {
+        $('#popup_info').hide();
+        $('#popup_help').hide();
+        $('#popup_about').show();
+    }
+    else if ( n == MigraPopups.Help ) 
+    {
+        $('#popup_info').hide();
+        $('#popup_help').show();
+        $('#popup_about').hide();
+    }
 }
 
 function showForm ( n )

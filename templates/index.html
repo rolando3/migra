@@ -16,13 +16,12 @@
         <section id="map_section">
             <div id="header"><h1>Migra ancestry mapping</h1></div>
             <div id="map_canvas"></div>
+            
             <div id="buttons">
                 <a id="btn_restart" href="#" class="pseudobutton">Restart</a>
                 <a id="btn_choose" href="#" class="pseudobutton">Refocus</a>
-<!--
                 <a id="btn_help" href="#" class="pseudobutton">Help</a>
                 <a id="btn_about" href="#" class="pseudobutton">About</a>
--->
             </div>
             <div id="footer">
                 <div id="statusBar" style="display: table-row; width: 100%">
@@ -49,6 +48,39 @@
         <form action="javascript:showMigrations();"><input type="submit" value="Show Migrations" /></form>
         </section>
 -->
+
+        <div id="popup_container">
+            <div id="popup_info" class="popup" style="display: none">
+            Fantastic voyage.
+            </div>
+            
+            <div id="popup_about" class="popup" style="display: none">
+            <div class="popup_closer">&#215;</div>
+            <h3>About</h3>
+            <p>
+            Migra Ancestry Mapper is a project by <a target="_blank" href="http://twitter.com/rolando">rolando</a>,
+            who enjoys genealogy and programming. If you have questions, ask him via twitter.
+            </p>
+            </div>
+            
+            <div id="popup_help" class="popup" style="display: none">
+            <div class="popup_closer">&#215;</div>
+            <h3>Help</h3>
+            <p>
+            After uploading your GEDCOM, you need to find a focal individual. This is the person whose ancestry you 
+            will be mapping. Maybe it's you. Search for that person. Migra will then produce a list of names matching your search.
+            Choose the one you want, and how many generations you want to go back.
+            </p>
+            <p>
+            After that, Migra will map all the individuals in the tree. This part may take a little while, so be patient.
+            The lines between points are color coded. People on the <em>maternal</em> line of that person are in various shades of red,
+            while those in the <em>paternal</em> line are in blue.
+            </p>
+            <p>
+            If you want to upload a new file, click <q>restart.</q> To find a new focal individual, click <q>refocus.</q>
+            </p>
+            </div>
+        </div>
 
         <div id="overlay">
             <div id="header"><h1>Migra ancestry mapping</h1></div>
