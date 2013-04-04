@@ -131,24 +131,10 @@ function Address ( placename, latlng )
     {
         try {
             var req = { name: this.placename, lat: this.latlng.lat(), lng: this.latlng.lng() };
-            $.ajax({
-                url: '/cache',
-                type: 'post',
-                data: JSON.stringify( req ),
-                contentType: 'application/json',
-                dataType: 'json'
-            });
+            $.post('/cache', req, function() { }, "json"  );
         } catch ( e ) {
-            window.status.warning ( "Failed to cache {0} at ({1}, {2}): {3}", req.name, req.lat, req.lng, e.toString() );
+            window.stat.warning ( "Failed to cache {0} at ({1}, {2}): {3}", req.name, req.lat, req.lng, e.toString() );
         }
-
-
-/*
-            $.post( "/cache", 
-                    JSON.stringify( req ), 
-                    function(data) { },
-                    'json' );
-*/
     }
     
     this.draw = function ()

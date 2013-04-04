@@ -63,7 +63,7 @@ def walk():
 @app.route('/cache',methods=['POST'])
 def cache():
     '''this caches the data sent. we don't care about the results (though maybe we should) '''
-    return jsonresponse( migra.cache(request.form['data']) )
+    return jsonresponse( migra.cache(request.form) )
     
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=True)

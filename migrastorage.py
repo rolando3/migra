@@ -28,11 +28,11 @@ class LocalFileStorage:
     @classmethod
     def get_file(cls,k):
         """ Given a key, get the stored file and return the deserialized object """
-        f = open('/'.join((cls.__getfolder(),k)),'r')    
+        f = open('/'.join((cls.__getfolder(),k)),'r')
         d = json.load(f)
         f.close()
         return d
-        
+
     @classmethod
     def cleanup(cls, age):
         """ delete all files more than age seconds old """
@@ -91,7 +91,9 @@ class AmazonS3FileStorage:
     @classmethod
     def get_file(cls,k):
         awsKey = cls.__key(k)
-        if awsKey is not None:
+        if awsKey is None:
+            raise ValueError, ("The key %s no longer exists" % k)
+        else:
             return json.loads(awsKey.get_contents_as_string())
 
     @classmethod

@@ -4,9 +4,6 @@ import psycopg2
 
 from gedcom import *
 
-#this will be set in the geocoder's init
-geocoder = None
-
 __all__ = [ 'Migra', 'MigraPersonEncoder' ]
 
 class MigraWalker:
@@ -117,13 +114,18 @@ class MigraPerson (GedcomIndividual):
         self.__location = None
 
         loc = MigraHelper.get_place(e)
-       
+
         if loc:
             self.__location = { 
                 'name': loc[1], 
-                'latlng': geocoder.geocode(loc[1]), 
+                'latlng': None, 
                 'date': MigraHelper.get_year(loc) 
             }
+
+        
+    def geocodeLocation(self, geocoder):
+        if self.__location:
+            self.__location['latlng'] = geocoder.geocode(self.__location['name'])
     
     def path(self,path=None):
         #given a path from the 'ego' set our path attribute.
@@ -247,9 +249,7 @@ class MigraGeocoder:
     """This class is for getting stored geocodes"""
     def __init__ ( self ):
         """Connect to our database"""
-        
-        global geocoder
-        geocoder = self
+        self.__con = None        
         self.__connect()
 
     def __connect ( self ):
@@ -315,9 +315,6 @@ class MigraGeocoder:
         return result[0]
 
 class Migra:
-    def __init__(self):
-        MigraGeocoder()
-
     def upload ( self, file ):
         #the calling function will have gotten the file from the web server and done something with it.
         #based upon its framework it probably will have saved the file, but who knows? what we need to do:
@@ -330,10 +327,13 @@ class Migra:
         else:
             g = Gedcom(file)
 
+        geocoder = MigraGeocoder()
+
         dict = {}
         for i in g.element_list():
             if i.individual():
                 p = MigraPerson(i)
+                p.geocodeLocation(geocoder)
                 dict[i.pointer()] = p
 
         return dict
@@ -347,6 +347,5 @@ class Migra:
         return { 'people': walker.people(), 'links': walker.links(), 'parameters': { 'id': id, 'depth': depth } }
         
     def cache ( self, parms ):
-        o = json.loads(parms)
-        return geocoder.cache ( MigraLocation(o['name'],o['lat'],o['lng']) )
+        return MigraGeocoder().cache ( MigraLocation(parms['name'],parms['lat'],parms['lng']) )
 
