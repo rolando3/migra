@@ -62,6 +62,10 @@ html, body {
 .pseudobutton a {
 }
 
+#btn_start {
+    float: right;
+}
+
 #popup_container {
     display: block;
     position: fixed;

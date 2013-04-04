@@ -19,8 +19,13 @@ if (!String.prototype.repeat) {
     }
 }
 
-MigraForms = { View: 1, UploadForm: 2, FilterForm: 3, WalkForm: 4 };
-MigraPopups = { Help: 101, About: 102, Info: 103 };
+MigraForms = { Intro: { Value: 'Intro', Switches: [ true, true, false, false, false ] },
+               UploadForm: { Value: 'Upload', Switches: [ true, false, true, false, false ] },
+               FilterForm: { Value: 'Filter', Switches: [ true, false, false, true, false ] },
+               WalkForm: { Value: 'Walk', Switches: [ true, false, false, false, true ] },
+               View: { Value: 'View', Switches: [ false, false, false, false, false ] } 
+             };
+MigraPopups = { Help: '#popup_help', Info: '#popup_info', About: '#popup_about' };
 
 function initialize() 
 {
@@ -50,7 +55,7 @@ function initialize()
     addEventListeners();
 
     window.stat.actionEnd("Initialized");
-    showForm(MigraForms.UploadForm);
+    showForm(MigraForms.Intro);
 }
 
 function MigraStatus ()
@@ -564,6 +569,10 @@ function clearMap()
 function addEventListeners() 
 {
     
+    $('#btn_start').click(function(e) {
+        showForm(MigraForms.UploadForm);
+    });
+    
     //When our forms are submitted we want to process their forms. When those are done we want to do things.
     $('#upload_form').submit(function (e) {
         window.stat.actionStart("Uploading data");
@@ -643,63 +652,21 @@ function hidePopups()
 
 function showPopup ( n )
 {
-    if ( n == MigraPopups.Info )
+    e = [ '#popup_info', '#popup_help', '#popup_about' ];
+    
+    for ( var i = 0; i < e.length; i++ ) 
     {
-        $('#popup_info').show();
-        $('#popup_help').hide();
-        $('#popup_about').hide();
-
-    }
-    else if ( n == MigraPopups.About )
-    {
-        $('#popup_info').hide();
-        $('#popup_help').hide();
-        $('#popup_about').show();
-    }
-    else if ( n == MigraPopups.Help ) 
-    {
-        $('#popup_info').hide();
-        $('#popup_help').show();
-        $('#popup_about').hide();
+        if ( n == e[i] ) { $(e[i]).show(); } else { $(e[i]).hide(); }
     }
 }
 
-function showForm ( n )
+function showForm ( f )
 {
-    //there are three forms; the fourth view is the unobscured map
-    
-    if ( n == MigraForms.View ) 
+    e = [ '#overlay', '#intro', '#upload_form_wrapper', '#filter_form_wrapper', '#walk_form_wrapper' ];
+
+    for ( var i = 0; i < e.length; i ++ )
     {
-        $('#overlay').hide();
-        $('#upload_form_wrapper').hide();
-        $('#filter_form_wrapper').hide();
-        $('#walk_form_wrapper').hide();
-    } 
-    else if ( n == MigraForms.UploadForm ) 
-    {
-        $('#overlay').show();
-        $('#upload_form_wrapper').show();
-        $('#filter_form_wrapper').hide();
-        $('#walk_form_wrapper').hide();
-    }
-    else if ( n == MigraForms.WalkForm )
-    {
-        $('#overlay').show();
-        $('#upload_form_wrapper').hide();
-        $('#filter_form_wrapper').hide();
-        $('#walk_form_wrapper').show();
-    }
-    else if ( n == MigraForms.FilterForm )
-    {
-        $('#overlay').show();
-        $('#upload_form_wrapper').hide();
-        $('#filter_form_wrapper').show();
-        $('#walk_form_wrapper').hide();
-    }
-    else
-    {
-        //This is an error!
-        window.alert ( "What is this bullshit? " + n )
+        if ( f.Switches[i] ) { $(e[i]).show(); } else { $(e[i]).hide(); }
     }
 }
 
