@@ -121,7 +121,6 @@ class MigraPerson (GedcomIndividual):
                 'latlng': None, 
                 'date': MigraHelper.get_year(loc) 
             }
-
         
     def geocodeLocation(self, geocoder):
         if self.__location:

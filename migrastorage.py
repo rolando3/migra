@@ -64,10 +64,10 @@ class AmazonS3FileStorage:
         from time import gmtime
         from calendar import timegm
         from random import choice
+        from string import ascii_lowercase as letters
         
         if k is None:
             key = Key(cls.__bucket())
-            from string import ascii_lowercase as letters
             k = ''
             for i in range(12):
                 k += choice(letters)

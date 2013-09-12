@@ -278,16 +278,28 @@ class Element(object):
 
         date = None
         place = None
+        addr = None
+        addrPlace = None
 
         for e in self.children():
             if e.tag() == event:
-                result = ( None, None )
                 for c in e.children():
                     if c.tag() == "DATE":
                         date = c.value()
                     if c.tag() == "PLAC":
                         place = c.value()
-        
+                    if c.tag() == "ADDR":
+                        addrPlace = []
+                        addr = c.children()
+                        for ac in addr:
+                            addrPlace.append(ac.value())
+
+        #now we have to resolve the conflict if any between place and address
+        #how do we know which is better? we don't. they may be redundant.
+        #given the point of this program, Address is probaby preferable
+        if ( addr ):
+            place = ", ".join(addrPlace)
+    
         return None if ( date, place ) == ( None, None ) else ( date, place )
         
     def __event_year(self,event):

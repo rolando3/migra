@@ -57,6 +57,7 @@ html, body {
     -webkit-border-radius: 5px;
     -moz-border-radius: 5px;
     border-radius: 5px;
+    cursor: pointer;
 }
 
 .pseudobutton a {
@@ -91,7 +92,7 @@ html, body {
 }
 
 .popup_closer {
-    cursor: pointer;
+    arrow: pointer;
     float: right;
     font-weight: bold;
     font-size: 200%;
