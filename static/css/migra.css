@@ -4,7 +4,7 @@ html, body {
     height: 100%;
     font-family: Georgia, "Times New Roman", Times, serif;
     background-color: #eeeeff;
-    -webkit-user-select: none; /* Chrome/Safari */        
+    -webkit-user-select: none; /* Chrome/Safari */
     -moz-user-select: none; /* Firefox */
     -ms-user-select: none; /* IE10+ */
     /* Rules below not implemented in browsers yet */
@@ -23,7 +23,7 @@ html, body {
     font-weight: bold;
     color: #ff9900;
     text-align: center;
-//    vertical-align: middle;
+    /*vertical-align: middle;*/
     font: 50px/40px "Arial Black", "Helvetica Black", Gadget, sans-serif;
     text-shadow: 1px 1px 0 #4444dd;
     height: 7.5%;
@@ -46,7 +46,7 @@ html, body {
 }
 
 .pseudobutton {
-//    margin: 0.5em;
+    /*margin: 0.5em;*/
     text-decoration: none;
     color: white;
     margin: 0 0 0 1em;
@@ -99,8 +99,8 @@ html, body {
     color: white;
 }
 
-#map_canvas { 
-    height: 100%; 
+#map_canvas {
+    height: 100%;
     width: 100%;
 }
 
@@ -248,7 +248,7 @@ fieldset label {
     0%{
     -moz-transform:rotate(0deg)
     }
-    
+
     100%{
     -moz-transform:rotate(360deg)
     }
@@ -258,7 +258,7 @@ fieldset label {
     0%{
     -webkit-transform:rotate(0deg)
     }
-    
+
     100%{
     -webkit-transform:rotate(360deg)
     }
@@ -268,7 +268,7 @@ fieldset label {
     0%{
     -ms-transform:rotate(0deg)
     }
-    
+
     100%{
     -ms-transform:rotate(360deg)
     }
@@ -279,7 +279,7 @@ fieldset label {
     0%{
     -o-transform:rotate(0deg)
     }
-    
+
     100%{
     -o-transform:rotate(360deg)
     }
@@ -290,7 +290,7 @@ fieldset label {
     0%{
     transform:rotate(0deg)
     }
-    
+
     100%{
     transform:rotate(360deg)
     }

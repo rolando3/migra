@@ -13,7 +13,7 @@
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
@@ -55,7 +55,7 @@ class Gedcom(object):
         self.__individuals = 0
         self.__parse(fd)
         self.__fd = fd
-        
+
 #    def __del__(self):
 #        self.__element_dict = None
 
@@ -91,7 +91,7 @@ class Gedcom(object):
                 ('\xFF\xFE\x00\x00', 4, 'UTF-32LE'),
                 ('\x00\x00\xFE\xFF', 4, 'UTF-32BE'),
                 )
-                
+
             for sig, siglen, enc in bom_info:
                 if l.startswith(sig):
                     l = l[siglen:]
@@ -184,7 +184,7 @@ class Gedcom(object):
         if len(parts) <= place:
             return ''
         p = self.__pointer(number,parts,place)
-        if p != '' and place < 3: #if we get to the fourth then 
+        if p != '' and place < 3: #if we get to the fourth then
             # rest of the line should be empty
             if len(parts) > place + 1:
                 self.__error(number,"Too many elements: %s (cannot be greater than %s)" % ( len(parts), place+1 ))
@@ -197,7 +197,7 @@ class Gedcom(object):
                 place += 1
             v = string.join(vlist)
             return v
-            
+
     def __error(self,number,text):
         error = "Gedcom format error on line " + str(number) + ': ' + text
         raise GedcomParseError, error
@@ -217,10 +217,10 @@ class Gedcom(object):
 class GedcomParseError(Exception):
     """ Exception raised when a Gedcom parsing error occurs
     """
-    
+
     def __init__(self, value):
         self.value = value
-        
+
     def __str__(self):
         return `self.value`
 
@@ -246,7 +246,7 @@ class Element(object):
     is a spouse.  Likewise, an element with a tag of FAMC has a value
     that points to a family record in which the associated person is a
     child.
-    
+
     See a Gedcom file for examples of tags and their values.
 
     """
@@ -266,11 +266,11 @@ class Element(object):
         # structuring
         self.__children = []
         self.__parentref = None
-        
+
     def __find_element(self,ptr):
         ''' find another element in the gedcom, given a pointer '''
         return self.__gedcom().element_dict().get(ptr,None)
-    
+
     def __event(self,event):
         """ Return the location tuple of the given type as (date,place) """
         if not self.individual():
@@ -299,9 +299,9 @@ class Element(object):
         #given the point of this program, Address is probaby preferable
         if ( addr ):
             place = ", ".join(addrPlace)
-    
+
         return None if ( date, place ) == ( None, None ) else ( date, place )
-        
+
     def __event_year(self,event):
         """ Return the event year of a person in integer format """
         date = ""
@@ -309,7 +309,7 @@ class Element(object):
             return date
 
         e = self.__event(event);
-            
+
         try:
             datel = string.split(e[0])
             date = datel[len(datel)-1]
@@ -324,7 +324,7 @@ class Element(object):
     def pointer(self):
         """ Return the pointer of this element """
         return self.__pointer
-    
+
     def tag(self):
         """ Return the tag of this element """
         return self.__tag
@@ -344,7 +344,7 @@ class Element(object):
     def add_child(self,element):
         """ Add a child element to this element """
         self.children().append(element)
-        
+
     def add_parent(self,element):
         import weakref
         """ Add a parent element to this element """
@@ -384,7 +384,7 @@ class Element(object):
                 key,value = crit.split('=')
         except:
             return False
-            
+
         match = True
         for crit in criteria.split(':'):
             key,value = crit.split('=')
@@ -440,13 +440,13 @@ class Element(object):
                         match = False
                 except:
                     match = False
-                    
+
         return match
 
     def pointer_match(self,pointer):
         """ Match a string with the pointer of an individual"""
         return self.pointer() == pointer
-    
+
     def name_match(self,name,casesensitive=True):
         """ Match a string with either the given name or surname of an individual """
         (first,last) = self.name()
@@ -456,13 +456,13 @@ class Element(object):
             last = last.lower()
 
         parts = string.split(name.strip())
-        
+
         for p in parts:
             if ( p not in first and p not in last ):
                 return False
-                
+
         return True
-        
+
     def surname_match(self,name):
         """ Match a string with the surname of an individual """
         (first,last) = self.name()
@@ -554,10 +554,10 @@ class Element(object):
 
     def surname(self):
         return self.name()[1]
-    
+
     def given(self):
         return self.name()[0]
-    
+
     def full_name(self):
         """ Return a string of the person's name """
         return " ".join(self.name())
@@ -565,7 +565,7 @@ class Element(object):
     def sex(self):
         if not self.individual():
             return None;
-            
+
         for e in self.children():
             if e.tag() == "SEX":
                 return e.value();
@@ -579,7 +579,7 @@ class Element(object):
     def birth_year(self):
         """ Return the birth year of a person in integer format """
         return self.__event_year("BIRT")
-    
+
     def death(self):
         """ Return the death tuple of a person as (date,place) """
         return self.__event("DEAT")
@@ -596,7 +596,7 @@ class Element(object):
     def burial(self):
         """ Return the baptism tuple of a person as (date,place) """
         return self.__event("BURI")
-        
+
     def deceased(self):
         """ Check if a person is deceased """
         if not self.individual():
@@ -607,14 +607,14 @@ class Element(object):
         return False
 
     def parents(self):
-    	""" Return an individual's parents in a list, 
-    	    the father in position 0, mother in 1 
+    	""" Return an individual's parents in a list,
+    	    the father in position 0, mother in 1
     	"""
-    	
+
     	parents = [None,None]
     	if not self.individual():
     		return parents
-    	
+
     	for e in self.children():
     		if e.tag() == "FAMC":
     			f = self.__find_element(e.value())
@@ -622,9 +622,9 @@ class Element(object):
     				for g in f.children():
     					if g.tag() == "HUSB":
     						parents[0] = self.__find_element(g.value())
-    					elif g.tag() == "WIFE":	
+    					elif g.tag() == "WIFE":
     						parents[1] = self.__find_element(g.value())
-    	
+
     	return parents
 
     def marriages(self):
@@ -637,7 +637,7 @@ class Element(object):
         marriages = []
         if not self.individual():
             return marriages
-            
+
         for e in self.children():
             if e.tag() == "FAMS":
                 f = self.__find_element(e.value())
@@ -652,8 +652,8 @@ class Element(object):
 	                                mar["place"] = h.value()
 	                    elif ( g.tag() == "HUSB" or g.tag() == "WIFE" ) and g.value() != self.pointer():
 	                        mar["spouse"] = self.__find_element(g.value())
-	                                
-                    marriages.append(mar)             
+
+                    marriages.append(mar)
 
         return marriages
 
@@ -680,7 +680,7 @@ class Element(object):
         for p in [ self.birth(), self.death(), self.baptism(), self.burial() ]:
             if p != None:
                 result.append( p )
-        
+
         return result
 
     def get_individual(self):
@@ -689,7 +689,7 @@ class Element(object):
         for e in self.children():
             result += '\n' + e.get_individual()
         return result
-        
+
     def get_family(self):
         result = self.get_individual()
         for e in self.children():
@@ -707,9 +707,9 @@ class Element(object):
         for e in self.children():
             if e.tag() == "FAMC":
                 return e
-            
+
         return None
-    
+
     def offspring(self):
         results = []
         for f in self.families():
@@ -718,7 +718,7 @@ class Element(object):
                     results.append(self.__find_element(e.value()))
 
         return results
-            
+
     def __str__(self):
         """ Format this element as its original string """
         result = str(self.level())
@@ -728,4 +728,3 @@ class Element(object):
         if self.value() != "":
             result += ' ' + self.value()
         return result
-        

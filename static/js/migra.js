@@ -2,15 +2,15 @@
 
 //first, checks if it isn't implemented yet
 if (!String.prototype.format) {
-  String.prototype.format = function() {
-    var args = arguments;
-    return this.replace(/{(\d+)}/g, function(match, number) { 
-      return typeof args[number] != 'undefined'
-        ? args[number]
-        : match
-      ;
-    });
-  };
+    String.prototype.format = function() {
+        var args = arguments;
+        return this.replace(/{(\d+)}/g, function(match, number) {
+            return typeof args[number] != 'undefined'
+            ? args[number]
+            : match
+            ;
+        });
+    };
 }
 
 if (!String.prototype.repeat) {
@@ -20,14 +20,14 @@ if (!String.prototype.repeat) {
 }
 
 MigraForms = { Intro: { Value: 'Intro', Switches: [ true, true, false, false, false ] },
-               UploadForm: { Value: 'Upload', Switches: [ true, false, true, false, false ] },
-               FilterForm: { Value: 'Filter', Switches: [ true, false, false, true, false ] },
-               WalkForm: { Value: 'Walk', Switches: [ true, false, false, false, true ] },
-               View: { Value: 'View', Switches: [ false, false, false, false, false ] } 
-             };
+UploadForm: { Value: 'Upload', Switches: [ true, false, true, false, false ] },
+FilterForm: { Value: 'Filter', Switches: [ true, false, false, true, false ] },
+WalkForm: { Value: 'Walk', Switches: [ true, false, false, false, true ] },
+View: { Value: 'View', Switches: [ false, false, false, false, false ] }
+};
 MigraPopups = { Help: '#popup_help', Info: '#popup_info', About: '#popup_about' };
 
-function initialize() 
+function initialize()
 {
     //initialize our stuff: the map, its constituent thingies
     var myOptions = {
@@ -50,7 +50,7 @@ function initialize()
     window.spiderifier = new OverlappingMarkerSpiderfier(window.map);
     window.mapper = new Mapper();
 
-    //initialize all the map variables    
+    //initialize all the map variables
     clearMap();
     addEventListeners();
 
@@ -61,52 +61,52 @@ function initialize()
 function MigraStatus ()
 {
     //Various status feedback functions
-    
+
     this.actionStart = function(desc)
     {
         this.info(desc + "...");
         $('#spinner').show();
     }
-    
+
     this.actionUpdate = function(i,total)
     {
         if ( total = 0 ) return;
-        
-        var progressBar = document.getElementById("progressBar"); 
-        var percentageDiv = document.getElementById("percentageCalc"); 
-        
-        progressBar.max = total; 
-        progressBar.value = i; 
-        percentageDiv.innerHTML = Math.round(i / total * 100) + "%"; 
-        
+
+        var progressBar = document.getElementById("progressBar");
+        var percentageDiv = document.getElementById("percentageCalc");
+
+        progressBar.max = total;
+        progressBar.value = i;
+        percentageDiv.innerHTML = Math.round(i / total * 100) + "%";
+
         return;
     }
-    
+
     this.actionEnd = function(msg)
     {
         if ( typeof(msg) != "undefined" ) this.info(msg + ".");
         $('#spinner').hide();
     }
-    
+
     this.actionError = function(msg)
     {
         this.error("Error: " + msg + ".");
         $('#spinner').hide();
     }
-    
+
     this.info = function(msg)
     {
-    //show progress on the bar. log the same message.
+        //show progress on the bar. log the same message.
         $("#message_pad").text (msg);
         console.log(msg);
     }
-    
+
     this.warning = function(msg)
     {
         $("#message_pad").text (msg);
         console.log(msg);
     }
-    
+
     this.error = function(msg)
     {
         $("#message_pad").text (msg);
@@ -115,19 +115,19 @@ function MigraStatus ()
     }
 }
 
-function Address ( placename, latlng ) 
+function Address ( placename, latlng )
 {
     //Address class. Placename coupled with a google maps LatLng object
     this.placename = placename;
     this.latlng = latlng;
     this.people = [];
-    
-    this.addPerson = function(person) 
+
+    this.addPerson = function(person)
     {
         this.people.push ( person );
     }
-    
-    this.cache = function() 
+
+    this.cache = function()
     {
         try {
             var req = { name: this.placename, lat: this.latlng.lat(), lng: this.latlng.lng() };
@@ -136,15 +136,15 @@ function Address ( placename, latlng )
             window.stat.warning ( "Failed to cache {0} at ({1}, {2}): {3}", req.name, req.lat, req.lng, e.toString() );
         }
     }
-    
+
     this.draw = function ()
     {
         for (var i = 0; i < this.people.length; i++) {
             this.people[i].latlng = this.latlng;
             this.people[i].draw();
         }
-    } 
-    
+    }
+
     this.map = function ( )
     {
     }
@@ -152,7 +152,7 @@ function Address ( placename, latlng )
 
 function Mapper ( )
 {
-    
+
     this.locationStatus = { cache: 0, total: 0, geocoded: 0, error: 0 };
 
     this.reset = function ()
@@ -162,17 +162,17 @@ function Mapper ( )
         this.locationStatus.cache = 0;
         this.locationStatus.error = 0;
     }
-    
-    this.__progressFunctionLocations = function() 
+
+    this.__progressFunctionLocations = function()
     {
-       if ( this.locationStatus.geocoded + this.locationStatus.cache + this.locationStatus.error >= this.locationStatus.total )
-       {
-           window.stat.actionEnd();
-           window.stat.info ( "Mapped {0} individuals at {4} distinct locations ({1} geocoded and cached, {2} retrieved from cache, {3} errors).".format ( Object.keys(window.data.people).length, this.locationStatus.geocoded, this.locationStatus.cache, this.locationStatus.error, this.locationStatus.total ) );
-           this.drawMissingLinks();
-       	} else {
-           	window.stat.actionUpdate(this.locationStatus.geocoded + this.locationStatus.error, this.locationStatus.total - this.locationStatus.cache);
-       	}
+        if ( this.locationStatus.geocoded + this.locationStatus.cache + this.locationStatus.error >= this.locationStatus.total )
+        {
+            window.stat.actionEnd();
+            window.stat.info ( "Mapped {0} individuals at {4} distinct locations ({1} geocoded and cached, {2} retrieved from cache, {3} errors).".format ( Object.keys(window.data.people).length, this.locationStatus.geocoded, this.locationStatus.cache, this.locationStatus.error, this.locationStatus.total ) );
+            this.drawMissingLinks();
+        } else {
+            window.stat.actionUpdate(this.locationStatus.geocoded + this.locationStatus.error, this.locationStatus.total - this.locationStatus.cache);
+        }
     }
 
     this.drawMissingLinks = function ( ) {
@@ -186,7 +186,7 @@ function Mapper ( )
         }
     }
 
-    this.map = function (address) 
+    this.map = function (address)
     {
         if ( address.latlng != null )
         {
@@ -197,27 +197,27 @@ function Mapper ( )
         }
         else
         {
-         	window.geocoder.geocode( { 'address': address.placename }, function ( results, status ) {
-         	    //window.mapper below is essentially this
-           		if (status == google.maps.GeocoderStatus.OK ) 
-           		{
-        		    window.stat.info ( "Geocoded {0}.".format(address.placename) );
+            window.geocoder.geocode( { 'address': address.placename }, function ( results, status ) {
+                //window.mapper below is essentially this
+                if (status == google.maps.GeocoderStatus.OK )
+                {
+                    window.stat.info ( "Geocoded {0}.".format(address.placename) );
                     address.latlng = results[0].geometry.location;
                     address.draw();
                     address.cache();
                     window.mapper.locationStatus.geocoded ++;
-           		}
-           		else if (status == google.maps.GeocoderStatus.OVER_QUERY_LIMIT) 
-           		{
+                }
+                else if (status == google.maps.GeocoderStatus.OVER_QUERY_LIMIT)
+                {
                     setTimeout(function() {window.mapper.map(address); }, Math.random() * 10000 );
-        		}
-        		else
-        		{
-           		    window.stat.warning ( "Error finding {0}: {1}.".format ( address.placename , status ) );
-        		    window.mapper.locationStatus.error ++;
-        		}
-        		window.mapper.__progressFunctionLocations();
-         	} );
+                }
+                else
+                {
+                    window.stat.warning ( "Error finding {0}: {1}.".format ( address.placename , status ) );
+                    window.mapper.locationStatus.error ++;
+                }
+                window.mapper.__progressFunctionLocations();
+            } );
         }
     }
 }
@@ -227,20 +227,20 @@ function AncestryLink ( parentID, childID )
     //A link between parent and child
     this.parent = window.data.people[parentID];
     window.data.people[parentID].addChildLink(this);
-    
+
     this.child = window.data.people[childID];
     window.data.people[childID].addParentLink(this);
-    
+
     this.drawn = false;
-    
+
     this.draw = function ( ) {
         //Draw may be called three times on this link. The first time when it is established, and then
         //When the location at each end is established.
         //If there is no place name or the latlng cannot be established then we draw "virtual" lines to the ancestors.
-       	
-       	if ( this.parent.latlng === undefined || this.parent.latlng == null ) return;
-       	if ( this.child.latlng === undefined  || this.child.latlng == null ) return;
-        
+
+        if ( this.parent.latlng === undefined || this.parent.latlng == null ) return;
+        if ( this.child.latlng === undefined  || this.child.latlng == null ) return;
+
         this.drawOne ( this.parent, this.child );
         this.drawn = true;
     }
@@ -248,18 +248,18 @@ function AncestryLink ( parentID, childID )
     this.resolveMissingLink = function ( ) {
         //Make sure we haven't been drawn.
         if ( this.drawn ) return;
-        
+
         var ancestors = [];
         var descendants = [];
-        
+
         if ( this.parent.latlng === undefined  || this.parent.latlng == null )
         {
-            //If parent does not have a lat/lng then 
+            //If parent does not have a lat/lng then
             ancestors = this.parent.findAncestorsWithLocation(0);
         } else {
             ancestors = [ this.parent ];
         }
-        
+
         if ( this.child.latlng === undefined  || this.child.latlng == null )
         {
             descendants = this.child.findDescendantsWithLocation(0);
@@ -270,85 +270,85 @@ function AncestryLink ( parentID, childID )
         for ( var a=0; a < ancestors.length; a++ ) {
             for ( var d=0; d < descendants.length; d++ ) {
                 this.drawOne ( ancestors[a], descendants[d] );
-//                console.log ( "Creating link from {0} to {1} spanning {2} generation(s)".format ( ancestors[a].name, descendants[d].name, ancestors[a].generation - descendants[d].generation ) );
+                //                console.log ( "Creating link from {0} to {1} spanning {2} generation(s)".format ( ancestors[a].name, descendants[d].name, ancestors[a].generation - descendants[d].generation ) );
             }
         }
-        
+
         this.drawn = true;
 
     }
 
-    this.drawOne = function ( p, c )     
+    this.drawOne = function ( p, c )
     {
-        var maxWeight = window.options["depth"];    
-    	var lineOpacity = 0.5;
-    	var weight = Math.abs ( maxWeight - Math.min ( p.generation, maxWeight - 1 ) );    	
-    	if ( weight < 1 || weight === undefined || weight == NaN || weight == null ) weight = 1;
-    	
-    	var icons = null;
-    	
-    	if ( p.generation - c.generation > 1 )
-    	{
-    	    lineOpacity = 0;
-    	    icons = [{
-    	        icon: {
+        var maxWeight = window.options["depth"];
+        var lineOpacity = 0.5;
+        var weight = Math.abs ( maxWeight - Math.min ( p.generation, maxWeight - 1 ) );
+        if ( weight < 1 || weight === undefined || weight == NaN || weight == null ) weight = 1;
+
+        var icons = null;
+
+        if ( p.generation - c.generation > 1 )
+        {
+            lineOpacity = 0;
+            icons = [{
+                icon: {
                     path: 'M 0,-1 0,1',
                     strokeOpacity: 0.3,
                     strokeWeight: weight,
-                    scale: 4 
+                    scale: 4
                 },
                 offset: '0',
                 repeat: '15px'
-    	    }];
-    	}
-    	
+            }];
+        }
+
         var plOptions = {
-          path: [ p.latlng, c.latlng ],
-          strokeWeight: weight,
-          geodesic: true,
-          strokeOpacity: lineOpacity,
-          strokeColor: this.getStrokeColor(),
-          map: window.map,
-          link: this,
-          icons: icons
+            path: [ p.latlng, c.latlng ],
+            strokeWeight: weight,
+            geodesic: true,
+            strokeOpacity: lineOpacity,
+            strokeColor: this.getStrokeColor(),
+            map: window.map,
+            link: this,
+            icons: icons
         };
-    
-    	var pl = new google.maps.Polyline(plOptions);
-    	window.overlays.polylines.push ( pl );
-    
+
+        var pl = new google.maps.Polyline(plOptions);
+        window.overlays.polylines.push ( pl );
+
         //On click show path from this person to the focal individual
-        google.maps.event.addListener(pl, 'click', function() { 
+        google.maps.event.addListener(pl, 'click', function() {
             this.link.parent.showPathToFocus ( );
         });
     }
 
     this.getStrokeColor = function() {
-        
+
         var colors = { M: 0, F: 0 }
-        
+
         for ( i = 1; i < this.parent.path.length; i ++ ) {
-            colors[window.data.people[this.parent.path[i]].sex] += ( 1 / Math.pow(2,i) ); 
+            colors[window.data.people[this.parent.path[i]].sex] += ( 1 / Math.pow(2,i) );
         }
         colors[this.parent.sex] += ( 1 / Math.pow(2,this.parent.path.length) );
-    
+
         bluefactor = Math.round(colors["M"] * 255).toString(16);
         redfactor = Math.round(colors["F"] * 255).toString(16);
         greenfactor = Math.round(Math.min(colors["M"],colors["F"])*255).toString(16);
-        
+
         bluefactor = "0".repeat(2-bluefactor.length) + bluefactor;
         redfactor = "0".repeat(2-redfactor.length) + redfactor;
         greenfactor = "0".repeat(2-greenfactor.length) + greenfactor;
-        
+
         strokeColor = "#{0}{1}{2}".format ( redfactor,greenfactor,bluefactor );
-        
+
         return strokeColor
-        
+
     }
-    
+
 
 }
 
-function Person ( jsonPerson ) 
+function Person ( jsonPerson )
 {
     //Give a json person, turn it into "our" person. more or less the same but automatically gets latlng
     this.id = jsonPerson["id"];
@@ -362,19 +362,19 @@ function Person ( jsonPerson )
         this.date = jsonPerson["location"]["date"];
         this.placename = jsonPerson["location"]["name"];
     }
-    catch ( e ) 
+    catch ( e )
     {
         this.date = null;
         this.placename = null;
     }
-    
+
     window.data.people[this.id] = this;
-    
+
     this.sexratio = 0;
     this.parentLinks = [];
     this.childLinks = [];
 
-    if ( ! this.placename ) { 
+    if ( ! this.placename ) {
         this.latlng = null;
     } else {
         if ( window.data.addresses[this.placename] === undefined )
@@ -382,15 +382,15 @@ function Person ( jsonPerson )
             this.latlng = ( jsonPerson["location"]["latlng"] == null ) ? null : new google.maps.LatLng(jsonPerson.location.latlng.lat, jsonPerson.location.latlng.lng);
             window.data.addresses[this.placename] = new Address ( this.placename, this.latlng );
         }
-        
+
         window.data.addresses[this.placename].addPerson(this);
     }
 
-    //add a link to this person.    
+    //add a link to this person.
     this.addParentLink = function ( link ) {
         this.parentLinks.push ( link );
     }
-    
+
     this.addChildLink = function ( link ) {
         this.childLinks.push ( link );
     }
@@ -398,24 +398,24 @@ function Person ( jsonPerson )
     this.showPathToFocus = function ( ) {
         var path = [];
         var tempMarkers = [];
-//        var s = new OverlappingMarkerSpiderfier(map);
+        //        var s = new OverlappingMarkerSpiderfier(map);
 
         //we are going to hide all links and just show the path from this individual to the focus individual.
         showAllOverlays(false);
 
         var curLink = this.childLinks[0];
         var m = curLink.parent.addMarker();
-//        s.addMarker(m);
+        //        s.addMarker(m);
         tempMarkers.push ( m );
         path.push ( curLink.parent.latlng );
         while ( curLink && curLink.child ) {
             m = curLink.child.addMarker();
             tempMarkers.push ( m );
-//            s.addMarker(m);
+            //            s.addMarker(m);
             if ( curLink.child.latlng ) path.push (curLink.child.latlng);
             curLink = curLink.child.childLinks[0]; //There should only be one.
         }
-        
+
         var plOptions = {
             path: path,
             geodesic: true,
@@ -423,15 +423,15 @@ function Person ( jsonPerson )
             weight: 4,
             map: window.map,
             points: tempMarkers
-//            spider: s
+            //            spider: s
         };
-        
+
         newLine = new google.maps.Polyline(plOptions)
-        
+
         //When this new line is clicked, return everything to its original state
-        google.maps.event.addListener(newLine, 'click', function() { 
+        google.maps.event.addListener(newLine, 'click', function() {
             this.setMap(null);
-//            s.setMap(null);
+            //            s.setMap(null);
             for ( j = 0; j < tempMarkers.length; j ++ )
             {
                 tempMarkers[j].setMap(null);
@@ -439,46 +439,46 @@ function Person ( jsonPerson )
             showAllOverlays(true);
         });
     }
-    
 
-    this.addMarker = function ( ) 
+
+    this.addMarker = function ( )
     {
-        
+
         pinColor = this.sex == "F" ? "FF8888" : "8888CC";
-    	var markerCharacter = "?";
-    	switch ( this.generation ) 
-    	{
-    	    case 0:
-    	        markerCharacter = "%E2%80%A2";
-    	        break;
-    	    case 1:
-    	        markerCharacter = ( this.sex == "F" ? "M" : "F" );
-    	        break;
-    	    case 2:
-    	        markerCharacter = "G";
-    	        break;
-    	    default:
-    	        markerCharacter = this.generation - 2;
-    	}
-    	
-    	var markerOpts = {
-    		position: this.latlng, 
-    		map: window.map, 
-    		icon: new google.maps.MarkerImage("http://chart.apis.google.com/chart?chst=d_map_pin_letter&chld=" + markerCharacter + "|" + pinColor),
-    		title: "{0} ({1}; {2}; {3})".format( this.name , getRelationshipDesc(this) , this.placename , this.date, this.sexratio ),
-    		person: this
-    	};
-    	
-    	return new google.maps.Marker ( markerOpts );
-    
+        var markerCharacter = "?";
+        switch ( this.generation )
+        {
+        case 0:
+            markerCharacter = "%E2%80%A2";
+            break;
+        case 1:
+            markerCharacter = ( this.sex == "F" ? "M" : "F" );
+            break;
+        case 2:
+            markerCharacter = "G";
+            break;
+        default:
+            markerCharacter = this.generation - 2;
+        }
+
+        var markerOpts = {
+            position: this.latlng,
+            map: window.map,
+            icon: new google.maps.MarkerImage("http://chart.apis.google.com/chart?chst=d_map_pin_letter&chld=" + markerCharacter + "|" + pinColor),
+            title: "{0} ({1}; {2}; {3})".format( this.name , getRelationshipDesc(this) , this.placename , this.date, this.sexratio ),
+            person: this
+        };
+
+        return new google.maps.Marker ( markerOpts );
+
     }
 
     this.draw = function () {
         m = this.addMarker ();
         this.marker = m;
         window.overlays.markers.push ( m );
-    	window.clusterer.addMarkers ( [ m ] );
-    	window.spiderifier.addMarker ( m );
+        window.clusterer.addMarkers ( [ m ] );
+        window.spiderifier.addMarker ( m );
 
         //now we see if we have locations on both ends of the given link.
         for (var j = 0; j < this.childLinks.length; j++) {
@@ -487,24 +487,24 @@ function Person ( jsonPerson )
         for (var j = 0; j < this.parentLinks.length; j++) {
             this.parentLinks[j].draw();
         }
-        
+
     }
 
     this.findAncestorsWithLocation = function(l) {
         if ( l > 10 ) return [ this ];
-        
+
         if ( this.latlng !== undefined && this.latlng != null ) {
             return [this];
-        }    
+        }
 
         var result = [];
         for ( var i=0; i < this.parentLinks.length; i++ ) {
             var a = this.parentLinks[i].parent.findAncestorsWithLocation(l+1);
-            for ( var j=0; j < a.length; j++ ) { 
-                result.push(a[j]); 
+            for ( var j=0; j < a.length; j++ ) {
+                result.push(a[j]);
             }
         }
-        
+
         return result;
     }
 
@@ -513,13 +513,13 @@ function Person ( jsonPerson )
 
         if ( this.latlng !== undefined && this.latlng != null ) {
             return [this];
-        }    
+        }
 
         var result = [];
         for ( var i=0; i < this.childLinks.length; i++ ) {
             var d = this.childLinks[i].child.findDescendantsWithLocation(l+1);
-            for ( var j=0; j < d.length; j++ ) { 
-                result.push(d[j]); 
+            for ( var j=0; j < d.length; j++ ) {
+                result.push(d[j]);
             }
         }
 
@@ -530,35 +530,35 @@ function Person ( jsonPerson )
 }
 
 //reset the map.
-function clearMap() 
+function clearMap()
 {
 
     if ( window.overlays != null ) {
-        for (var i = 0; i < window.overlays.markers.length; i++ ) 
+        for (var i = 0; i < window.overlays.markers.length; i++ )
         {
             window.overlays.markers[i].setMap(null);
         }
-        
-        for (var i = 0; i < window.overlays.polylines.length; i++ ) 
+
+        for (var i = 0; i < window.overlays.polylines.length; i++ )
         {
             window.overlays.polylines[i].setMap(null);
         }
     }
-    
+
     window.data = { people: [], addresses: [], links: [] };
     window.overlays = { markers: [], polylines: [] };
-    
+
     window.clusterer.clearMarkers();
-    
+
 }
 
-function addEventListeners() 
+function addEventListeners()
 {
-    
+
     $('#btn_start').click(function(e) {
         showForm(MigraForms.UploadForm);
     });
-    
+
     //When our forms are submitted we want to process their forms. When those are done we want to do things.
     $('#upload_form').submit(function (e) {
         window.stat.actionStart("Uploading data");
@@ -567,7 +567,7 @@ function addEventListeners()
             showForm(MigraForms.FilterForm);
         });
     });
-    
+
     //When our forms are submitted we want to process their forms. When those are done we want to do things.
     $('#filter_form').submit(function (e) {
         window.stat.actionStart("Filtering list of individuals");
@@ -597,23 +597,23 @@ function addEventListeners()
             {
                 window.stat.error ( "Error walking: {0}.".format(e.toString()) );
                 showForm ( MigraForms.FilterForm );
-            } 
+            }
         });
     });
 
     $('#reset_form').submit(function (e) {
         clearMap();
     });
-    
+
     $('#btn_restart').click(function(e) {
         //Might need to clean up data
         showForm(MigraForms.UploadForm);
     });
-        
+
     $('#btn_choose').click(function(e) {
         showForm(MigraForms.FilterForm);
     });
-    
+
     $('#btn_help').click(function(e) {
         showPopup(MigraPopups.Help);
     });
@@ -621,11 +621,11 @@ function addEventListeners()
     $('#btn_about').click(function(e) {
         showPopup(MigraPopups.About);
     });
-    
+
     $('.popup_closer').click(function(e) {
         hidePopups();
     });
-    
+
 }
 
 function hidePopups()
@@ -639,8 +639,8 @@ function hidePopups()
 function showPopup ( n )
 {
     e = [ '#popup_info', '#popup_help', '#popup_about' ];
-    
-    for ( var i = 0; i < e.length; i++ ) 
+
+    for ( var i = 0; i < e.length; i++ )
     {
         if ( n == e[i] ) { $(e[i]).show(); } else { $(e[i]).hide(); }
     }
@@ -664,7 +664,7 @@ function processForm(form, e, successfunction )
     //I don't even need these variables.
     var formData = new FormData(form);
     form_action = $(form).attr('action');
-        
+
     $.ajax({
         type: 'post',
         beforeSend: function() {
@@ -676,13 +676,13 @@ function processForm(form, e, successfunction )
             $(form).find(":input").prop('disabled',false);
         },
         xhr: function () {
-          //The XMLHTTPRequest sends notifications as a file is uploaded. That's nice.
-          myXhr = $.ajaxSettings.xhr();
-          if (myXhr.upload) {
-            myXhr.upload.addEventListener('progress', function(evt) { window.stat.actionUpdate(evt.loaded,evt.total); }, false);
-            myXhr.upload.addEventListener('load', function(evt) { window.stat.actionStart("Server processing data"); } );
-          }
-          return myXhr;
+            //The XMLHTTPRequest sends notifications as a file is uploaded. That's nice.
+            myXhr = $.ajaxSettings.xhr();
+            if (myXhr.upload) {
+                myXhr.upload.addEventListener('progress', function(evt) { window.stat.actionUpdate(evt.loaded,evt.total); }, false);
+                myXhr.upload.addEventListener('load', function(evt) { window.stat.actionStart("Server processing data"); } );
+            }
+            return myXhr;
         },
         data: formData,
         url: form_action,
@@ -690,7 +690,7 @@ function processForm(form, e, successfunction )
         contentType: false,
         dataType: 'json',
         success: successfunction,
-        error: function( xhr, httpStatus, msg ) { 
+        error: function( xhr, httpStatus, msg ) {
             window.stat.error ( "Error in AJAX request: ({0}): {1}.".format( httpStatus , msg ) );
         }
     });
@@ -702,9 +702,9 @@ function buildPeopleList(httpData)
     var value = "";
     var i = 0;
     window.options = httpData.parameters;
-    
+
     $('#i_select').empty();
-    
+
     if ( httpData.people.length > 0 )
     {
         //We have found at least one match.
@@ -713,10 +713,10 @@ function buildPeopleList(httpData)
             window.stat.actionUpdate(i,httpData.people.length);
             value = "{0} {1}".format( person.name, person.birth ? " (b. " + person.birth.date + ")" : "" );
             $('#i_select')
-                 .append($('<option>', { value : person.id,
-                                         text: "{0} {1}".format( person.name, person.birth ? " (b. {0})".format(person.birth.date) : "" ) }
+            .append($('<option>', { value : person.id,
+                text: "{0} {1}".format( person.name, person.birth ? " (b. {0})".format(person.birth.date) : "" ) }
 
-                 )); 
+            ));
         });
         showForm(MigraForms.WalkForm);
         window.stat.actionEnd();
@@ -727,30 +727,30 @@ function buildPeopleList(httpData)
     }
 }
 
-function drawMap ( httpData ) 
+function drawMap ( httpData )
 {
     var addressNames;
     window.options = httpData.parameters;
     clearMap();
 
     //Loop through the people. add them to the list. This also creates a list of unique addresses.
-    for (var i = 0; i < httpData.people.length; i++) 
+    for (var i = 0; i < httpData.people.length; i++)
     {
         new Person(httpData.people[i]);
     }
-    
+
     //all of the new people create a list of unique addresses in data addresses. Here we get their names
     addressNames = Object.keys(window.data.addresses);
-    
+
     //Now loop through our links array and add those (
-    for ( i = 0; i < httpData.links.length; i++ ) 
+    for ( i = 0; i < httpData.links.length; i++ )
     {
         //note that parent, child here are IDs/Pointers
         window.data.links.push ( new AncestryLink ( httpData.links[i].parent, httpData.links[i].child ) );
     }
 
     window.stat.info ( "Ancestry parsed for {0}. {1} people retrieved. {2} links retrieved. {3} distinct addresses retrieved.".format ( httpData.people[0].name,  Object.keys(window.data.people).length, httpData.links.length, addressNames.length ) );
-    
+
     window.mapper.reset();
     //Plot each unique address on the map
     for ( i = 0; i < addressNames.length; i++)
@@ -758,7 +758,7 @@ function drawMap ( httpData )
         //This really should be a function on the address object but I had a little trouble with that.
         window.mapper.map(window.data.addresses[addressNames[i]]);
     }
-    
+
     //Addresses are being mapped. Take our form away.
     showForm(MigraForms.View);
 
@@ -770,7 +770,7 @@ function showMigrations ( )
     var latestDate = -3000;
     var keys = Object.keys(window.data.people);
 
-    //The idea with this function is that we will progress through the people in our people 
+    //The idea with this function is that we will progress through the people in our people
     for ( var i = 0; i < keys.length ; i++ )
     {
         key = keys[i];
@@ -790,21 +790,21 @@ function showAllOverlays(toggle)
         window.clusterer.clearMarkers();
         window.spiderifier.clearMarkers();
     }
-    
-    for ( var i = 0; i < window.overlays.markers.length; i ++ ) 
+
+    for ( var i = 0; i < window.overlays.markers.length; i ++ )
     {
         window.overlays.markers[i].setVisible(toggle);
     }
-    
-    for ( var i = 0; i < window.overlays.polylines.length; i ++ ) 
+
+    for ( var i = 0; i < window.overlays.polylines.length; i ++ )
     {
         window.overlays.polylines[i].setVisible(toggle);
     }
-    
-    if ( toggle ) 
+
+    if ( toggle )
     {
         window.clusterer.addMarkers ( window.overlays.markers );
-        for ( var i = 0; i < window.overlays.markers.length; i ++ ) 
+        for ( var i = 0; i < window.overlays.markers.length; i ++ )
         {
             window.spiderifier.addMarker ( window.overlays.markers[i] );
         }
@@ -815,44 +815,44 @@ function showMigrationMarkers ( startRange, endRange )
 {
     var peopleKeys = Object.keys(window.data.people);
     var p;
-    
-    if ( startRange >= endRange ) 
+
+    if ( startRange >= endRange )
     {
         showAllOverlays(true);
         return;
     }
-    
+
     window.stat.info ( startRange + " - " + ( startRange + 30 ) );
-    
+
     for ( i = 0; i < peopleKeys.length; i++ )
     {
         p = window.data.people[peopleKeys[i]];
-        if ( p.marker ) 
+        if ( p.marker )
         {
             b = ( p.date >= startRange && p.date < ( startRange + 30 ) );
             if ( p.date === undefined || p.date == null ) b = false;
-            
+
             if ( b ) p.marker.setMap(window.map);
             p.marker.setVisible ( b );
         }
     }
-    
+
     setTimeout ( function() { showMigrationMarkers ( startRange + 15, endRange ); }, 1000 );
 }
 
-function getRelationshipDesc ( person ) 
+function getRelationshipDesc ( person )
 {
     var rel = ( person.generation == 0 ? "self" : ( person.sex == "M" ? "father" : "mother" ) );
-	if ( person.generation > 1 ) rel = "grand" + rel; 
-	if ( person.generation > 2 ) rel = "great-" + rel;
-	if ( person.generation > 3 )
-	{ 
-    	var s=["th","st","nd","rd"],
-    	    g=person.generation-2,
-            v=g%100;
+    if ( person.generation > 1 ) rel = "grand" + rel;
+    if ( person.generation > 2 ) rel = "great-" + rel;
+    if ( person.generation > 3 )
+    {
+        var s=["th","st","nd","rd"],
+        g=person.generation-2,
+        v=g%100;
         rel = "" + ( g+(s[(v-20)%10]||s[v]||s[0]) ) + " " + rel;
     }
-	return rel;
+    return rel;
 }
 
 function xinspect(o,i){

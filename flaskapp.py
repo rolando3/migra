@@ -21,11 +21,11 @@ def jsonresponse(data):
 def __allowed_file(filename):
     return '.' in filename and \
           filename.rsplit('.', 1)[1] in ['ged','zip']
-    
+
 @app.route('/')
 def index():
-    """ Just displays the index template 
-        This is where all the HTML action happens. 
+    """ Just displays the index template
+        This is where all the HTML action happens.
         Everything else is a JSON request/response """
     return render_template('index.html')
 
@@ -40,7 +40,7 @@ def favicon():
 def upload():
     """ Get the file and the search term from the upload, turn it into a gedcom, do something with this """
     file = request.files['gedcom']
-    
+
     if file and __allowed_file(file.filename):
         all = migra.upload(file)
         session['key'] = fileStorage().store_file(all,session.get('key',None))
@@ -59,11 +59,11 @@ def walk():
     """Now we have to find our file and send it to gedcom -- unless we can attach the gedcom created earlier via session!"""
     d = fileStorage().get_file(session['key'])
     return jsonresponse( migra.walk(d,request.form['i'],request.form['d']) )
-    
+
 @app.route('/cache',methods=['POST'])
 def cache():
     '''this caches the data sent. we don't care about the results (though maybe we should) '''
     return jsonresponse( migra.cache(request.form) )
-    
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=True)
